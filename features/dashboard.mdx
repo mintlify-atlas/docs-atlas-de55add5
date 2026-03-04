@@ -1,0 +1,289 @@
+---
+title: Revenue Intelligence Dashboard
+description: Real-time visibility into your business performance across all locations
+icon: chart-line
+---
+
+The Revenue Intelligence Dashboard is your command center for monitoring business performance, identifying revenue opportunities, and tracking AI agent activity across all your spa and wellness centers.
+
+## Overview
+
+The dashboard provides role-based views optimized for different users:
+
+<CardGroup cols={2}>
+  <Card title="Owner View" icon="crown">
+    Executive-level revenue analytics, location comparison, and AI opportunity tracking
+  </Card>
+  <Card title="Staff View" icon="user">
+    Task management, daily bookings, and AI-powered recommendations
+  </Card>
+</CardGroup>
+
+## Key Metrics
+
+The dashboard displays four primary metrics updated in real-time from Zenoti:
+
+### Total Revenue
+Aggregate revenue across selected locations over the last 30 days, with period-over-period comparison showing growth trends.
+
+**What you see:**
+- Dollar amount with animated count-up
+- Percentage change vs. previous 30-day period
+- "via Zenoti" data source indicator
+
+### Revenue at Risk
+Revenue that was nearly lost but recovered through AI intervention, including:
+- No-show prevention through predictive reminders
+- After-hours inquiry capture (vs. missed voicemails)
+- Missed call recovery
+
+**Example insight:** "$12,450 recovered by AI" with 42.5% trend indicator
+
+### No-Show Rate
+Percentage of confirmed appointments where clients didn't appear, tracked daily and averaged over the period.
+
+**Trend direction:**
+- Negative trend (down arrow) = improvement
+- Typically shows 50-70% reduction after AI implementation
+
+### Average Response Time
+Mean time to respond to client inquiries across all channels (voice, SMS, web, social).
+
+**Before AI:** 4.2 hours average
+**With AI:** 8-45 seconds average
+**Format:** Displays as seconds ("8s") or minutes ("2m 15s")
+
+<Info>
+All metrics automatically filter by your selected location from the dropdown in the navigation bar. Choose "All Centers" to see aggregated data.
+</Info>
+
+## Revenue Trend Chart
+
+<Frame>
+  <img src="/images/dashboard-revenue-chart.png" alt="30-day revenue trend chart" />
+</Frame>
+
+The revenue trend visualization shows:
+- **Daily revenue** plotted over the last 30 days
+- **Gradient fill** under the line for visual emphasis
+- **Interactive tooltips** showing exact amounts on hover
+- **Y-axis** formatted as "$15k", "$20k" for readability
+- **Smooth animations** when data updates or location changes
+
+**Reading the chart:**
+- Look for upward trends indicating growth
+- Identify weekday vs. weekend patterns
+- Spot anomalies that may need investigation
+
+## AI Opportunities Panel
+
+The right sidebar displays up to 5 active opportunities identified by the AI Revenue Analyst:
+
+<Tabs>
+  <Tab title="Critical">
+    **Red border** - Immediate attention required
+    
+    Example: "3 high-value clients at risk of churning — last visit 90+ days ago"
+    
+    Impact: $2,850
+  </Tab>
+  <Tab title="Warning">
+    **Orange border** - Important but not urgent
+    
+    Example: "White Plains utilization dropping — 3 open slots tomorrow"
+    
+    Impact: $850
+  </Tab>
+  <Tab title="Opportunity">
+    **Blue border** - Revenue growth potential
+    
+    Example: "15 clients ready for Botox rebooking (3-month cycle)"
+    
+    Impact: $6,750
+  </Tab>
+</Tabs>
+
+**How to use:**
+1. Click any opportunity card to see details
+2. AI provides recommended actions
+3. Impact amounts show potential revenue gain/loss
+4. Dismiss after addressing to keep the list actionable
+
+## AI Agents Module
+
+Track the status of all AI agents working across your business:
+
+```
+Conversation Analyst     ● Online     1,247 tasks
+Response Monitor         ● Online     2,381 tasks  
+Escalation Tracker       ● Online       312 tasks
+Schedule Analyst         ● Online     1,893 tasks
+No-Show Predictor        ● Online       647 tasks
+Demand Forecaster        ◐ Idle          89 tasks
+Revenue Analyst          ● Online       412 tasks
+Opportunity Scout        ● Online       238 tasks
+Report Generator         ⚠ Error        156 tasks
+```
+
+**Status indicators:**
+- **Green pulse (Online):** Agent actively processing tasks
+- **Yellow (Idle):** Agent waiting for new tasks
+- **Red pulse (Error):** Requires attention (rare)
+
+**Tasks handled:** Running count of all actions completed by each agent
+
+<Warning>
+If you see an agent in "Error" state, it will automatically retry. If the error persists beyond 10 minutes, contact support.
+</Warning>
+
+## Live Activity Feed
+
+A real-time stream of AI actions across your business:
+
+**Recent activity examples:**
+- "After-hours inquiry detected — response time: 8 seconds (vs. 4.2 hr avg)" - *SoHo, 2m ago*
+- "Revenue gap identified: $850 from delayed lead follow-up" - *Williamsburg, 5m ago*
+- "Appointment reminder tracked — client confirmed within 3 min" - *Hoboken, 8m ago*
+- "Waitlist conversion tracked: Hydrafacial slot filled from cancellation" - *SoHo, 12m ago*
+
+**Activity types:**
+- 📞 Voice calls (blue)
+- 💬 SMS messages (purple)  
+- 📅 Booking events (green)
+- ⚠️ Alerts (orange)
+- 💰 Revenue events (teal)
+- 🌐 Web interactions (blue)
+
+## Location Performance Comparison
+
+<Note>
+This section only appears when "All Centers" is selected in the location filter.
+</Note>
+
+When viewing all locations, the dashboard displays a comparison grid:
+
+| Location | City | Revenue (30d) | Utilization |
+|----------|------|---------------|-------------|
+| SoHo Flagship | Manhattan, NY | $87,250 | 82% |
+| Williamsburg | Brooklyn, NY | $64,100 | 76% |
+| Hoboken | Hoboken, NJ | $58,900 | 79% |
+| White Plains | White Plains, NY | $41,200 | 68% |
+| Stamford | Stamford, CT | $38,500 | 71% |
+
+**Use cases:**
+- Identify underperforming locations
+- Benchmark utilization rates
+- Allocate marketing budget based on performance
+- Recognize top-performing teams
+
+## Staff Dashboard View
+
+When logged in as a staff member, the dashboard shows:
+
+### Personal Metrics
+- **Your Bookings Today:** Number of appointments assigned to you
+- **Conversion Rate:** Percentage of inquiries you converted to bookings
+- **Pending Follow-ups:** Clients awaiting your response
+- **AI Suggestions:** Recommended actions from the AI analyst
+
+### Today's Tasks
+
+Prioritized task list with color-coded urgency:
+
+<Steps>
+  <Step title="Urgent (Red dot)">
+    Follow up with Sarah M. — interested in Body Contouring
+  </Step>
+  <Step title="Pending (Orange dot)">
+    Confirm 3 PM Botox appointment with James R.
+  </Step>
+  <Step title="AI Handling (Blue dot)">
+    Review AI-generated treatment recommendations
+  </Step>
+</Steps>
+
+**Tasks are:**
+- Auto-prioritized based on revenue impact and urgency
+- Synced with Zenoti appointment data
+- Updated in real-time as situations change
+
+## Data Refresh
+
+Dashboard data updates:
+- **Metrics:** Every 30 seconds
+- **Charts:** Every 60 seconds  
+- **Activity feed:** Real-time (websocket)
+- **AI agents:** Every 15 seconds
+
+<Info>
+When you change the location filter, the dashboard shows a brief loading state (600ms) while fetching location-specific data.
+</Info>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start your day with the dashboard">
+    Check the dashboard every morning to:
+    - Review overnight AI activity
+    - Address critical opportunities
+    - Verify all agents are online
+    - Check yesterday's revenue performance
+  </Accordion>
+  
+  <Accordion title="Monitor trends, not just numbers">
+    Focus on trend arrows rather than absolute values:
+    - Consistent upward revenue trends indicate healthy growth
+    - Declining no-show rates show AI effectiveness
+    - Response time improvements drive conversion
+  </Accordion>
+  
+  <Accordion title="Act on AI opportunities quickly">
+    The AI Opportunities panel is updated hourly. Opportunities lose value over time:
+    - Critical opportunities: Address within 2 hours
+    - Warnings: Address same day
+    - General opportunities: Address within 48 hours
+  </Accordion>
+  
+  <Accordion title="Use location comparison for coaching">
+    Share location performance data during team meetings:
+    - Celebrate high performers
+    - Identify training needs
+    - Replicate best practices across centers
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Metrics showing zero or missing data">
+    **Cause:** Location filter set to a center with no recent activity
+    
+    **Solution:** Switch to "All Centers" to verify data is flowing, then check individual location settings in Zenoti integration.
+  </Accordion>
+  
+  <Accordion title="Revenue chart not updating">
+    **Cause:** Browser tab backgrounded for extended period
+    
+    **Solution:** Refresh the page. The chart will resume real-time updates.
+  </Accordion>
+  
+  <Accordion title="AI agent showing 'Error' status">
+    **Cause:** Temporary connectivity issue or API rate limit
+    
+    **Solution:** Agent will auto-retry every 2 minutes. If error persists >10 minutes, contact support with the agent name.
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Command Center" icon="messages" href="/features/command-center">
+    Deep dive into conversation analytics
+  </Card>
+  <Card title="Scheduling" icon="calendar" href="/features/scheduling">
+    Appointment and utilization insights
+  </Card>
+  <Card title="Intelligence Hub" icon="brain" href="/features/intelligence">
+    Ask the AI Analyst questions
+  </Card>
+</CardGroup>

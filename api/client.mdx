@@ -1,0 +1,289 @@
+---
+title: 'HTTP Client'
+description: 'Authentication, request handling, retries, and rate-limiting for Zenoti API calls'
+---
+
+The HTTP client module (`client.ts`) provides the core request infrastructure for all Zenoti API communication. It handles authentication, automatic token refresh, exponential backoff retries, and rate-limiting.
+
+## Core Function
+
+### `zenotiRequest<T>()`
+
+Core request wrapper that adds authentication headers, serializes query parameters, handles errors, and retries on transient failures.
+
+```typescript
+export async function zenotiRequest<T>(
+  path: string,
+  options: ZenotiRequestOptions = {},
+): Promise<T>
+```
+
+<ParamField path="path" type="string" required>
+  API endpoint path relative to base URL (e.g., `/v1/centers`, `/v1/appointments`)
+</ParamField>
+
+<ParamField path="options" type="ZenotiRequestOptions">
+  Request configuration object
+</ParamField>
+
+<ParamField path="options.method" type="'GET' | 'POST' | 'PUT' | 'DELETE'" default="GET">
+  HTTP method
+</ParamField>
+
+<ParamField path="options.body" type="unknown">
+  Request body (automatically JSON-serialized)
+</ParamField>
+
+<ParamField path="options.params" type="Record<string, string | number | boolean | undefined>">
+  Query string parameters. Undefined values are omitted.
+</ParamField>
+
+<ParamField path="options.headers" type="Record<string, string>">
+  Additional headers to merge with defaults
+</ParamField>
+
+<ResponseField name="return" type="T">
+  Parsed JSON response body typed as `T`
+</ResponseField>
+
+### Example Usage
+
+<CodeGroup>
+```typescript GET Request
+import { zenotiRequest } from '@/integrations/zenoti'
+import type { ZenotiCentersResponse } from '@/integrations/zenoti'
+
+const response = await zenotiRequest<ZenotiCentersResponse>('/v1/centers')
+console.log(response.centers)
+```
+
+```typescript With Query Parameters
+const response = await zenotiRequest<ZenotiAppointmentsResponse>(
+  '/v1/appointments',
+  {
+    params: {
+      center_id: 'abc123',
+      start_date: '2026-03-01',
+      end_date: '2026-03-31',
+      status: 1,
+    },
+  }
+)
+```
+
+```typescript POST Request
+const invoice = await zenotiRequest<ZenotiInvoiceResponse>(
+  '/v1/invoices',
+  {
+    method: 'POST',
+    body: {
+      guest_id: 'guest123',
+      items: [{ service_id: 'svc456', quantity: 1 }],
+    },
+  }
+)
+```
+</CodeGroup>
+
+## Retry Logic
+
+The client automatically retries failed requests with exponential backoff:
+
+- **Max retries**: 3
+- **Retry delays**: 1s → 2s → 4s
+- **Retryable statuses**: 429 (rate limit), 5xx (server errors)
+- **Retry-After header**: Honored when present (overrides exponential delay)
+
+```typescript client.ts:141-166
+const MAX_RETRIES = 3
+const RETRY_DELAYS = [1000, 2000, 4000]
+
+for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  const res = await fetch(url.toString(), { method, headers, body })
+
+  if (res.ok) return (await res.json()) as T
+
+  const isRetryable = 
+    res.status === 429 || (res.status >= 500 && res.status < 600)
+
+  if (isRetryable && attempt < MAX_RETRIES) {
+    const retryAfter = res.headers.get('Retry-After')
+    const delay = retryAfter 
+      ? parseInt(retryAfter, 10) * 1000 
+      : RETRY_DELAYS[attempt]
+    await sleep(delay)
+    continue
+  }
+
+  // Non-retryable or exhausted → throw
+  throw new ZenotiApiError(res.status, errorMessage, errorBody)
+}
+```
+
+## Authentication
+
+### Configuration
+
+```typescript
+export interface ZenotiConfig {
+  /** Base URL — differs per data center (US, EU, AU) */
+  baseUrl: string
+  /** API Key — long-lived, valid ~1 year */
+  apiKey?: string
+  /** Application ID from Zenoti Admin > Setup > Apps */
+  applicationId?: string
+  /** Secret key generated alongside the Application ID */
+  secretKey?: string
+  /** Account / organization name in Zenoti */
+  accountName?: string
+}
+```
+
+### `getZenotiConfig()`
+
+Reads configuration from Vite environment variables.
+
+```typescript
+export function getZenotiConfig(): ZenotiConfig
+```
+
+<ResponseField name="return" type="ZenotiConfig">
+  Configuration object with values from `import.meta.env.VITE_ZENOTI_*`
+</ResponseField>
+
+### `getAccessToken()`
+
+Generates a bearer access token from Application ID + Secret Key. Tokens are cached and refreshed at 90% of their 24-hour lifetime.
+
+```typescript
+export async function getAccessToken(
+  config: ZenotiConfig,
+): Promise<string>
+```
+
+<ParamField path="config" type="ZenotiConfig" required>
+  Must include `applicationId`, `secretKey`, and `accountName`
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Bearer access token (cached for 24 hours)
+</ResponseField>
+
+**Throws**: `ZenotiAuthError` if credentials are missing or token request fails
+
+### Example
+
+```typescript
+import { getAccessToken, getZenotiConfig } from '@/integrations/zenoti'
+
+try {
+  const config = getZenotiConfig()
+  const token = await getAccessToken(config)
+  console.log('Token valid until:', new Date(Date.now() + 24 * 60 * 60 * 1000))
+} catch (error) {
+  if (error instanceof ZenotiAuthError) {
+    console.error('Authentication failed:', error.message)
+  }
+}
+```
+
+### `clearAccessToken()`
+
+Clears the cached bearer token (e.g., on disconnect or logout).
+
+```typescript
+export function clearAccessToken(): void
+```
+
+## Authentication Flow
+
+The client uses a two-tier authentication strategy:
+
+1. **Prefer API Key** — If `VITE_ZENOTI_API_KEY` is set, use it directly (no token generation needed)
+2. **Fallback to Bearer Token** — Generate and cache token from Application ID + Secret Key
+
+```typescript client.ts:125-132
+const authHeader: Record<string, string> = {}
+if (config.apiKey) {
+  authHeader['Authorization'] = config.apiKey
+} else {
+  const token = await getAccessToken(config)
+  authHeader['Authorization'] = `bearer ${token}`
+}
+```
+
+## Token Caching
+
+Tokens are cached in memory and refreshed at 90% of their expiry window:
+
+```typescript client.ts:38-45
+let cachedToken: string | null = null
+let tokenExpiresAt = 0
+
+function isTokenValid(): boolean {
+  return cachedToken !== null && Date.now() < tokenExpiresAt
+}
+
+// In getAccessToken():
+tokenExpiresAt = Date.now() + (data.expires_in ?? 86_400) * 900
+```
+
+**Note**: `expires_in` is in seconds (default 86,400 = 24 hours). We multiply by 900ms to get 90% of the lifetime.
+
+## Error Classes
+
+See [Error Handling](/api/error-handling) for complete reference.
+
+### `ZenotiApiError`
+
+Thrown for HTTP errors (4xx, 5xx) after retry exhaustion.
+
+```typescript
+export class ZenotiApiError extends Error {
+  status: number
+  response: ZenotiErrorResponse | null
+
+  constructor(
+    status: number,
+    message: string,
+    response?: ZenotiErrorResponse | null,
+  )
+}
+```
+
+### `ZenotiAuthError`
+
+Thrown when token generation fails due to missing/invalid credentials.
+
+```typescript
+export class ZenotiAuthError extends Error {
+  constructor(message: string)
+}
+```
+
+## Request Headers
+
+All requests include:
+
+```typescript
+{
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization': config.apiKey || `bearer ${token}`,
+  ...extraHeaders, // from options.headers
+}
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="code" href="/api/endpoints">
+    All endpoint methods that use zenotiRequest()
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api/error-handling">
+    Complete error reference and handling patterns
+  </Card>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Detailed authentication guide
+  </Card>
+</CardGroup>

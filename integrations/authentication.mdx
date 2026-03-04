@@ -1,0 +1,414 @@
+---
+title: "Authentication"
+description: "Secure authentication methods for the Zenoti API integration"
+---
+
+The Etienne Intelligence Platform supports two authentication methods for the Zenoti API: **API Key** (recommended for server-to-server) and **Bearer Token** (OAuth-style with employee credentials).
+
+## Authentication Methods
+
+### API Key Authentication (Recommended)
+
+API Keys are long-lived credentials (valid ~1 year) ideal for server-to-server integrations.
+
+**Advantages**:
+- Simple setup with single environment variable
+- No token refresh logic required
+- Reduced latency (no OAuth handshake)
+- Lower rate limit consumption (no `/v1/tokens` calls)
+
+**Configuration**:
+
+```bash
+# .env.local
+VITE_ZENOTI_BASE_URL=https://api.zenoti.com
+VITE_ZENOTI_API_KEY=your-api-key-here
+```
+
+**Implementation**:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:126
+const authHeader: Record<string, string> = {}
+
+if (config.apiKey) {
+  // Prefer API Key for server-to-server
+  authHeader['Authorization'] = config.apiKey
+} else {
+  // Fallback to Bearer Token
+  const token = await getAccessToken(config)
+  authHeader['Authorization'] = `bearer ${token}`
+}
+```
+
+**Where to Find Your API Key**:
+
+<Steps>
+  <Step title="Open Zenoti Admin">
+    Navigate to **Zenoti Admin > Setup > Apps**
+  </Step>
+  
+  <Step title="Select Your App">
+    Click on your backend application (e.g., "Etienne Intelligence Platform")
+  </Step>
+  
+  <Step title="Copy API Key">
+    Under **API Key** section, click **Show** and copy the key
+  </Step>
+  
+  <Step title="Add to Environment">
+    Paste into `VITE_ZENOTI_API_KEY` in your `.env.local` file
+  </Step>
+</Steps>
+
+<Warning>
+  API Keys are sensitive credentials. Never expose them in client-side code, commit them to version control, or share them in logs.
+</Warning>
+
+### Bearer Token Authentication
+
+Bearer tokens are short-lived (24 hours) and require an OAuth-style token exchange using Application ID and Secret Key.
+
+**Advantages**:
+- User-scoped access with employee credentials
+- Auto-rotation for enhanced security
+- Granular permission control per employee
+
+**Configuration**:
+
+```bash
+# .env.local
+VITE_ZENOTI_BASE_URL=https://api.zenoti.com
+VITE_ZENOTI_APP_ID=your-application-id
+VITE_ZENOTI_SECRET_KEY=your-secret-key
+VITE_ZENOTI_ACCOUNT_NAME=your-organization-name
+```
+
+**Token Generation**:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:53
+export async function getAccessToken(config: ZenotiConfig): Promise<string> {
+  // Return cached token if still valid (< 90% of lifetime)
+  if (isTokenValid()) return cachedToken!
+  
+  if (!config.applicationId || !config.secretKey || !config.accountName) {
+    throw new ZenotiAuthError(
+      'Missing applicationId, secretKey, or accountName — cannot generate token.'
+    )
+  }
+  
+  const body: ZenotiTokenRequest = {
+    account_name: config.accountName,
+    application_id: config.applicationId,
+    secret_key: config.secretKey,
+  }
+  
+  const res = await fetch(`${config.baseUrl}/v1/tokens`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  
+  if (!res.ok) {
+    const err = await res.json().catch(() => null) as ZenotiErrorResponse | null
+    throw new ZenotiAuthError(
+      err?.errors?.[0]?.message ?? `Token request failed (${res.status})`
+    )
+  }
+  
+  const data = await res.json() as ZenotiTokenResponse
+  cachedToken = data.access_token
+  
+  // Refresh at 90% of expiry window (default 24h = 86,400s)
+  tokenExpiresAt = Date.now() + (data.expires_in ?? 86_400) * 900
+  
+  return cachedToken
+}
+```
+
+**Token Caching**:
+
+The client caches tokens in memory and auto-refreshes at 90% of their lifetime:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:38
+let cachedToken: string | null = null
+let tokenExpiresAt = 0
+
+function isTokenValid(): boolean {
+  return cachedToken !== null && Date.now() < tokenExpiresAt
+}
+```
+
+**Clear Cached Token**:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:91
+import { clearAccessToken } from '@/integrations/zenoti'
+
+// Call when user disconnects or logs out
+clearAccessToken()
+```
+
+## Token Request/Response Types
+
+The integration uses TypeScript for type-safe authentication:
+
+```typescript
+// From: src/integrations/zenoti/types.ts:8
+export interface ZenotiTokenRequest {
+  account_name: string
+  application_id: string
+  secret_key: string
+  /** Employee username — required for bearer-token auth */
+  user_name?: string
+  /** Employee password — required for bearer-token auth */
+  password?: string
+}
+
+export interface ZenotiTokenResponse {
+  access_token: string
+  token_type: 'bearer'
+  expires_in: number
+  /** ISO timestamp of when the token was issued */
+  issued_at?: string
+}
+```
+
+## Security Best Practices
+
+<Warning>
+  Follow these security guidelines to protect your Zenoti integration:
+</Warning>
+
+### Environment Variable Security
+
+**DO**:
+- Store credentials in `.env.local` (gitignored by default)
+- Use different credentials for development, staging, and production
+- Rotate API keys every 6-12 months
+- Use secret management services (AWS Secrets Manager, Vault) in production
+
+**DON'T**:
+- Commit `.env.local` to version control
+- Expose credentials in client-side code
+- Share credentials via email, Slack, or other insecure channels
+- Log API keys or tokens in application logs
+
+### API Key Rotation
+
+<Steps>
+  <Step title="Generate New Key">
+    In Zenoti Admin > Setup > Apps, generate a new API key for your application
+  </Step>
+  
+  <Step title="Update Production">
+    Update `VITE_ZENOTI_API_KEY` in your production environment variables
+  </Step>
+  
+  <Step title="Deploy & Test">
+    Deploy the updated config and verify the connection works
+  </Step>
+  
+  <Step title="Revoke Old Key">
+    After confirming the new key works, revoke the old key in Zenoti Admin
+  </Step>
+</Steps>
+
+### Rate Limiting
+
+Zenoti enforces rate limits on API requests. The client includes automatic retry logic:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:141
+const MAX_RETRIES = 3
+const RETRY_DELAYS = [1000, 2000, 4000] // Exponential backoff in ms
+
+for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  const res = await fetch(url.toString(), { method, headers, body })
+  
+  if (res.ok) return await res.json()
+  
+  const isRetryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+  
+  if (isRetryable && attempt < MAX_RETRIES) {
+    // Use Retry-After header if present, else exponential backoff
+    const retryAfter = res.headers.get('Retry-After')
+    const delay = retryAfter
+      ? parseInt(retryAfter, 10) * 1000
+      : RETRY_DELAYS[attempt]
+    await sleep(delay)
+    continue
+  }
+  
+  throw new ZenotiApiError(res.status, errorMessage)
+}
+```
+
+**Rate Limit Best Practices**:
+- Use React Query caching to reduce redundant requests
+- Batch requests when fetching data for multiple centers
+- Increase `staleTime` for rarely-changing data (centers, services)
+- Implement request queuing for bulk operations
+
+### Error Handling
+
+The integration provides custom error classes for graceful degradation:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:184
+export class ZenotiApiError extends Error {
+  status: number
+  response: ZenotiErrorResponse | null
+  
+  constructor(
+    status: number,
+    message: string,
+    response?: ZenotiErrorResponse | null
+  ) {
+    super(message)
+    this.name = 'ZenotiApiError'
+    this.status = status
+    this.response = response ?? null
+  }
+}
+
+export class ZenotiAuthError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ZenotiAuthError'
+  }
+}
+```
+
+**Usage Example**:
+
+```typescript
+import { listCenters, ZenotiAuthError, ZenotiApiError } from '@/integrations/zenoti'
+
+try {
+  const centers = await listCenters()
+  console.log(`Found ${centers.length} centers`)
+} catch (error) {
+  if (error instanceof ZenotiAuthError) {
+    // Authentication failed — prompt user to check credentials
+    showAlert('Invalid Zenoti credentials. Please check your API key.')
+  } else if (error instanceof ZenotiApiError) {
+    if (error.status === 429) {
+      // Rate limit exceeded — client already retried, notify user
+      showAlert('Zenoti rate limit exceeded. Please try again in a few minutes.')
+    } else if (error.status >= 500) {
+      // Zenoti server error — log and use fallback data
+      console.error('Zenoti server error:', error.message)
+      useFallbackData()
+    }
+  }
+}
+```
+
+## Configuration Reference
+
+Complete environment variable reference:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:13
+export interface ZenotiConfig {
+  /** Base URL — differs per data center (US, EU, AU, etc.) */
+  baseUrl: string
+  /** API Key (long-lived, valid ~1 year) — used for server-to-server calls */
+  apiKey?: string
+  /** Application ID from Zenoti Admin > Setup > Apps */
+  applicationId?: string
+  /** Secret key generated alongside the Application ID */
+  secretKey?: string
+  /** Account / organization name in Zenoti */
+  accountName?: string
+}
+```
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|----------|
+| `VITE_ZENOTI_BASE_URL` | Yes | Zenoti API base URL (varies by region) | `https://api.zenoti.com` |
+| `VITE_ZENOTI_API_KEY` | No* | Long-lived API key for server-to-server auth | `ak_live_...` |
+| `VITE_ZENOTI_APP_ID` | No* | Application ID from Zenoti Admin | `app_123456` |
+| `VITE_ZENOTI_SECRET_KEY` | No* | Secret key for bearer token generation | `sk_live_...` |
+| `VITE_ZENOTI_ACCOUNT_NAME` | No* | Organization name in Zenoti | `spa-wellness-co` |
+
+<Info>
+  *You must provide either `VITE_ZENOTI_API_KEY` OR the trio of `VITE_ZENOTI_APP_ID`, `VITE_ZENOTI_SECRET_KEY`, and `VITE_ZENOTI_ACCOUNT_NAME`.
+</Info>
+
+## Testing Authentication
+
+Use the connection test hook to verify your credentials:
+
+```typescript
+// From: src/integrations/zenoti/hooks.ts:186
+import { useZenotiConnectionTest } from '@/integrations/zenoti'
+
+function ConnectionStatus() {
+  const { refetch, data, error, isLoading } = useZenotiConnectionTest()
+  
+  const testConnection = async () => {
+    const result = await refetch()
+    
+    if (result.isSuccess) {
+      console.log('✓ Connection successful')
+      console.log(`Found ${result.data.centerCount} centers`)
+      console.log('Centers:', result.data.centerNames.join(', '))
+    } else if (result.error instanceof ZenotiAuthError) {
+      console.error('✗ Authentication failed:', result.error.message)
+    } else {
+      console.error('✗ Connection failed:', result.error)
+    }
+  }
+  
+  return (
+    <div>
+      <button onClick={testConnection} disabled={isLoading}>
+        {isLoading ? 'Testing...' : 'Test Connection'}
+      </button>
+      {data && <p>Connected to {data.centerCount} centers</p>}
+      {error && <p className="error">{error.message}</p>}
+    </div>
+  )
+}
+```
+
+## Webhook Authentication (Future)
+
+The integration includes type definitions for webhook events:
+
+```typescript
+// From: src/integrations/zenoti/types.ts:347
+export interface ZenotiWebhookEvent {
+  event_type:
+    | 'appointment.created'
+    | 'appointment.updated'
+    | 'appointment.cancelled'
+    | 'appointment.noshow'
+    | 'appointment.completed'
+    | 'guest.created'
+    | 'guest.updated'
+    | 'invoice.created'
+    | 'invoice.closed'
+  timestamp: string
+  center_id: string
+  data: Record<string, unknown>
+}
+```
+
+Webhook authentication requires validating Zenoti's signature header. Implementation coming soon.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Overview" icon="globe" href="/integrations/overview">
+    Learn about available endpoints and data sync capabilities
+  </Card>
+  
+  <Card title="Zenoti Setup" icon="plug" href="/integrations/zenoti-setup">
+    Complete step-by-step setup guide
+  </Card>
+</CardGroup>

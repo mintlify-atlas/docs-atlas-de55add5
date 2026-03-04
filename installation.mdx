@@ -1,0 +1,412 @@
+---
+title: Development environment setup
+description: Configure local development environment for Etienne Intelligence platform
+---
+
+## Overview
+
+This guide covers setting up a local development environment for building custom integrations, extending the Etienne Intelligence platform, or contributing to the codebase.
+
+<Warning>
+  **For SaaS users:** If you're using Etienne Intelligence as a hosted SaaS platform, you don't need this guide. See the [Quickstart](/quickstart) instead.
+</Warning>
+
+## Prerequisites
+
+Ensure you have the following installed on your machine:
+
+<CardGroup cols={2}>
+  <Card title="Node.js 18+" icon="node-js">
+    Download from [nodejs.org](https://nodejs.org). Verify with `node --version`.
+  </Card>
+  <Card title="npm or pnpm" icon="box">
+    Comes with Node.js. Alternatively, install [pnpm](https://pnpm.io) for faster installs.
+  </Card>
+  <Card title="Git" icon="git">
+    Version control required for cloning the repository. Get it from [git-scm.com](https://git-scm.com).
+  </Card>
+  <Card title="Zenoti account" icon="key">
+    Admin access needed to generate API credentials for local testing.
+  </Card>
+</CardGroup>
+
+## Step 1: Clone the repository
+
+<CodeGroup>
+```bash HTTPS
+git clone https://github.com/your-org/etienne-intelligence.git
+cd etienne-intelligence
+```
+
+```bash SSH
+git clone git@github.com:your-org/etienne-intelligence.git
+cd etienne-intelligence
+```
+</CodeGroup>
+
+<Tip>
+  **Repository structure:**
+  - `/src` — React application source code (TypeScript + Vite)
+  - `/src/modules` — Feature modules (dashboard, command-center, intelligence, scheduling)
+  - `/src/integrations/zenoti` — Zenoti API client and data mappers
+  - `/src/components` — Shared UI components (MetricCard, ActivityFeed, etc.)
+</Tip>
+
+## Step 2: Install dependencies
+
+The platform uses React 19, TypeScript, Vite, TanStack Query, and Recharts for visualization.
+
+<CodeGroup>
+```bash npm
+npm install
+```
+
+```bash pnpm
+pnpm install
+```
+
+```bash yarn
+yarn install
+```
+</CodeGroup>
+
+**Key dependencies:**
+- `react` `react-dom` — React 19 framework
+- `react-router-dom` — Client-side routing for dashboard navigation
+- `@tanstack/react-query` — Server state management and data fetching
+- `recharts` — Revenue charts and visualizations
+- `framer-motion` — Animation library for smooth transitions
+- `zustand` — Lightweight state management for auth and location filters
+- `lucide-react` — Icon library
+- `tailwindcss` — Utility-first CSS framework (v4)
+
+<Note>
+  Installation typically takes 30-60 seconds. If you encounter peer dependency warnings, they're usually safe to ignore.
+</Note>
+
+## Step 3: Configure environment variables
+
+Create a local environment file to store Zenoti API credentials.
+
+<Steps>
+  <Step title="Copy example file">
+    ```bash
+    cp .env.example .env.local
+    ```
+  </Step>
+  <Step title="Generate Zenoti credentials">
+    Follow the same process as the [Quickstart guide](/quickstart#generate-zenoti-api-credentials):
+    1. Log into Zenoti Admin > Setup > Apps
+    2. Create a backend application named "Etienne Dev"
+    3. Copy Application ID, Secret Key, and API Key
+  </Step>
+  <Step title="Edit .env.local">
+    Open `.env.local` and fill in your credentials:
+    ```bash
+    # Zenoti API Configuration
+    VITE_ZENOTI_BASE_URL=https://api.zenoti.com
+    VITE_ZENOTI_API_KEY=your_api_key_here
+    VITE_ZENOTI_APP_ID=your_app_id_here
+    VITE_ZENOTI_SECRET_KEY=your_secret_key_here
+    VITE_ZENOTI_ACCOUNT_NAME=your_organization_name
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  **Security:** Never commit `.env.local` to version control. It's already in `.gitignore`, but double-check before pushing code.
+</Warning>
+
+### Environment variable reference
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `VITE_ZENOTI_BASE_URL` | Zenoti API endpoint (US or EU) | `https://api.zenoti.com` |
+| `VITE_ZENOTI_API_KEY` | Long-lived API key (~1 year validity) | `zapi_abc123...` |
+| `VITE_ZENOTI_APP_ID` | Application identifier from Zenoti | `app-12345` |
+| `VITE_ZENOTI_SECRET_KEY` | Authentication secret (treat as password) | `sk_live_...` |
+| `VITE_ZENOTI_ACCOUNT_NAME` | Your organization name in Zenoti | `Acme Wellness Spa` |
+
+## Step 4: Start development server
+
+Run the Vite development server with hot module replacement (HMR).
+
+<CodeGroup>
+```bash npm
+npm run dev
+```
+
+```bash pnpm
+pnpm dev
+```
+
+```bash yarn
+yarn dev
+```
+</CodeGroup>
+
+**Expected output:**
+```bash
+VITE v7.3.1  ready in 423 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h to show help
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser. You should see the Etienne Intelligence dashboard.
+
+<Tip>
+  **Hot reload:** Changes to `.tsx` or `.ts` files trigger instant browser updates without losing state. CSS changes apply immediately.
+</Tip>
+
+## Step 5: Verify Zenoti connection
+
+Test the integration to ensure data flows correctly.
+
+<Steps>
+  <Step title="Check sync badge">
+    Look for the Zenoti sync badge in the top-right corner of the dashboard. It should show "Synced" with a green indicator.
+  </Step>
+  <Step title="Inspect network requests">
+    Open browser DevTools (F12) and go to the **Network** tab. Filter by `zenoti`. You should see API calls to endpoints like:
+    - `/v1/appointments`
+    - `/v1/guests`
+    - `/v1/invoices`
+  </Step>
+  <Step title="Review console logs">
+    Check the **Console** tab for any authentication errors. A successful connection shows:
+    ```plaintext
+    [Zenoti] Connected to https://api.zenoti.com
+    [Zenoti] Synced 247 appointments, 1,832 guests
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  **Common errors:**
+  - **401 Unauthorized:** Check your API Key and Secret Key
+  - **404 Not Found:** Verify Base URL matches your Zenoti region (US vs EU)
+  - **CORS errors:** Zenoti API doesn't allow direct browser calls. Use a proxy in production.
+</Warning>
+
+## Project structure
+
+Understanding the codebase organization helps you navigate efficiently.
+
+```plaintext
+etienne-intelligence/
+├── src/
+│   ├── App.tsx                    # Root component with routing
+│   ├── main.tsx                   # Vite entry point
+│   ├── components/                # Shared UI components
+│   │   ├── MetricCard.tsx         # Revenue metric display cards
+│   │   ├── ActivityFeed.tsx       # Live activity stream
+│   │   ├── AgentStatusBadge.tsx   # AI agent status indicators
+│   │   └── ZenotiSyncBadge.tsx    # Real-time sync status
+│   ├── modules/                   # Feature modules
+│   │   ├── dashboard/             # Main dashboard (DashboardHome.tsx)
+│   │   ├── command-center/        # Conversation intelligence
+│   │   ├── intelligence/          # Revenue analytics + AI analyst
+│   │   └── scheduling/            # Smart scheduling engine
+│   ├── integrations/              # External API clients
+│   │   └── zenoti/
+│   │       ├── client.ts          # HTTP client with auth
+│   │       ├── endpoints.ts       # API endpoint definitions
+│   │       ├── hooks.ts           # React Query hooks (useAppointments, etc.)
+│   │       ├── mappers.ts         # Zenoti → app data transformers
+│   │       └── types.ts           # TypeScript interfaces for Zenoti data
+│   ├── stores/                    # Zustand state management
+│   │   ├── useAuthStore.ts        # User role and authentication
+│   │   ├── useLocationStore.ts    # Selected location filter
+│   │   └── useChatStore.ts        # AI analyst conversation state
+│   ├── layouts/
+│   │   └── DashboardLayout.tsx    # Shared sidebar + navigation
+│   ├── lib/
+│   │   └── utils.ts               # Helper functions (formatCurrency, etc.)
+│   └── types/
+│       └── index.ts               # Global TypeScript types
+├── .env.example                   # Environment variable template
+├── package.json                   # Dependencies and scripts
+├── vite.config.ts                 # Vite build configuration
+├── tsconfig.json                  # TypeScript compiler options
+└── tailwind.config.js             # Tailwind CSS configuration
+```
+
+## Development workflow
+
+### Running tests
+
+```bash
+npm run test
+```
+
+<Note>
+  Test suite uses Vitest and React Testing Library. Coverage reports generate in `/coverage`.
+</Note>
+
+### Building for production
+
+```bash
+npm run build
+```
+
+Optimized build outputs to `/dist`. Vite automatically:
+- Minifies JavaScript and CSS
+- Tree-shakes unused code
+- Generates source maps
+- Splits vendor and app bundles
+
+### Linting and formatting
+
+```bash
+npm run lint
+```
+
+ESLint checks for code quality issues. Auto-fix with:
+
+```bash
+npm run lint -- --fix
+```
+
+### Preview production build
+
+```bash
+npm run preview
+```
+
+Serves the `/dist` folder locally at `http://localhost:4173` to test production builds before deployment.
+
+## Common development tasks
+
+<AccordionGroup>
+  <Accordion title="Adding a new module" icon="plus">
+    1. Create folder in `/src/modules/[module-name]/`
+    2. Build `Overview.tsx` component with module layout
+    3. Add route to `App.tsx`:
+    ```tsx
+    <Route path="/module-name" element={<ModuleOverview />} />
+    ```
+    4. Update sidebar navigation in `DashboardLayout.tsx`
+  </Accordion>
+
+  <Accordion title="Creating a new Zenoti endpoint" icon="plug">
+    1. Define endpoint in `/src/integrations/zenoti/endpoints.ts`:
+    ```typescript
+    export const getServices = async () => {
+      return zenotiClient.get('/v1/services')
+    }
+    ```
+    2. Create React Query hook in `hooks.ts`:
+    ```typescript
+    export const useServices = () => {
+      return useQuery({
+        queryKey: ['zenoti', 'services'],
+        queryFn: getServices,
+      })
+    }
+    ```
+    3. Use hook in component:
+    ```tsx
+    const { data: services } = useServices()
+    ```
+  </Accordion>
+
+  <Accordion title="Adding a new metric card" icon="chart-simple">
+    Use the `MetricCard` component with these props:
+    ```tsx
+    <MetricCard
+      label="Your Metric Name"
+      value={12345}
+      format="currency" // or "percent", "time", "number"
+      trend={15.8} // percentage change
+      trendLabel="vs last month"
+      delay={0} // animation delay in ms
+      dataSource="Zenoti"
+    />
+    ```
+  </Accordion>
+
+  <Accordion title="Customizing AI analyst responses" icon="brain">
+    Edit `/src/lib/ai-responses.ts`. The `generateAIResponse()` function maps user queries to response templates. Add new patterns:
+    ```typescript
+    if (query.includes('staff performance')) {
+      return `## Staff Performance Analysis\n\nTop performers this month:...`
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port 5173 already in use" icon="exclamation">
+    Another process is using the default Vite port. Either:
+    - Kill the process: `lsof -ti:5173 | xargs kill`
+    - Or specify a different port: `vite --port 3000`
+  </Accordion>
+
+  <Accordion title="TypeScript errors after pulling latest code" icon="code">
+    Dependency mismatch. Reinstall:
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+
+  <Accordion title="Zenoti API rate limits" icon="clock">
+    Zenoti allows 100 requests/minute. Use React Query's caching:
+    ```typescript
+    useQuery({
+      queryKey: ['appointments'],
+      queryFn: getAppointments,
+      staleTime: 5 * 60 * 1000, // 5 min cache
+    })
+    ```
+  </Accordion>
+
+  <Accordion title="CSS not updating" icon="palette">
+    Tailwind rebuild issue. Restart dev server:
+    ```bash
+    # Stop server (Ctrl+C)
+    npm run dev
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="API reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    Explore Etienne's REST API for building custom integrations
+  </Card>
+  <Card
+    title="Component library"
+    icon="cube"
+    href="/components/overview"
+  >
+    Documentation for all reusable UI components
+  </Card>
+  <Card
+    title="Zenoti integration guide"
+    icon="plug"
+    href="/integrations/zenoti"
+  >
+    Deep dive into Zenoti API client architecture
+  </Card>
+  <Card
+    title="Contributing guidelines"
+    icon="code-branch"
+    href="/contributing"
+  >
+    How to contribute code, report bugs, and request features
+  </Card>
+</CardGroup>
+
+<Check>
+  **Development environment ready!** You can now build custom features, extend integrations, or contribute to the Etienne Intelligence platform.
+</Check>

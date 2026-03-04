@@ -1,0 +1,615 @@
+---
+title: 'Error Handling'
+description: 'Error classes, handling patterns, and troubleshooting for Zenoti integration'
+---
+
+The Zenoti integration defines two custom error classes for API and authentication failures. All errors are thrown as typed exceptions with detailed context for debugging.
+
+## Error Classes
+
+### `ZenotiApiError`
+
+Thrown for HTTP errors (4xx, 5xx) after retry exhaustion.
+
+```typescript
+export class ZenotiApiError extends Error {
+  status: number
+  response: ZenotiErrorResponse | null
+
+  constructor(
+    status: number,
+    message: string,
+    response?: ZenotiErrorResponse | null,
+  )
+}
+```
+
+<ParamField path="status" type="number">
+  HTTP status code (e.g., 400, 404, 500)
+</ParamField>
+
+<ParamField path="message" type="string">
+  Error message (extracted from Zenoti response or generic)
+</ParamField>
+
+<ParamField path="response" type="ZenotiErrorResponse | null">
+  Full Zenoti error response body, if available
+</ParamField>
+
+**Zenoti Error Response Format**:
+
+```typescript
+export interface ZenotiErrorResponse {
+  errors: ZenotiError[]
+  status: number
+}
+
+export interface ZenotiError {
+  code: string
+  message: string
+  field?: string // Field name if validation error
+}
+```
+
+### `ZenotiAuthError`
+
+Thrown when token generation fails due to missing or invalid credentials.
+
+```typescript
+export class ZenotiAuthError extends Error {
+  constructor(message: string)
+}
+```
+
+<ParamField path="message" type="string">
+  Authentication error description
+</ParamField>
+
+---
+
+## Common Error Scenarios
+
+### Missing Credentials
+
+Thrown when `applicationId`, `secretKey`, or `accountName` are missing during token generation.
+
+<CodeGroup>
+```typescript Error
+ZenotiAuthError: Missing applicationId, secretKey, or accountName — cannot generate token.
+```
+
+```typescript Handling
+import { getAccessToken, ZenotiAuthError } from '@/integrations/zenoti'
+
+try {
+  const token = await getAccessToken(config)
+} catch (error) {
+  if (error instanceof ZenotiAuthError) {
+    console.error('Authentication failed:', error.message)
+    // Prompt user to configure credentials
+    showConfigurationDialog()
+  }
+}
+```
+</CodeGroup>
+
+**Source**: client.ts:58-62
+
+### Invalid Credentials
+
+Thrown when Zenoti rejects the token request (401 Unauthorized).
+
+<CodeGroup>
+```typescript Error
+ZenotiAuthError: Token request failed (401)
+```
+
+```typescript Handling
+try {
+  const token = await getAccessToken(config)
+} catch (error) {
+  if (error instanceof ZenotiAuthError) {
+    if (error.message.includes('401')) {
+      toast.error('Invalid credentials', {
+        description: 'Please check your Application ID and Secret Key',
+      })
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Rate Limiting (429)
+
+Automatically retried with exponential backoff. If all retries are exhausted:
+
+<CodeGroup>
+```typescript Error
+ZenotiApiError: Request failed (429)
+// status: 429
+// response: { errors: [{ code: 'RATE_LIMIT_EXCEEDED', message: '...' }] }
+```
+
+```typescript Handling
+import { zenotiRequest, ZenotiApiError } from '@/integrations/zenoti'
+
+try {
+  const data = await zenotiRequest('/v1/appointments', { params })
+} catch (error) {
+  if (error instanceof ZenotiApiError && error.status === 429) {
+    console.error('Rate limit exceeded after retries')
+    // Show user-friendly message
+    toast.error('Too many requests', {
+      description: 'Please try again in a few minutes',
+    })
+  }
+}
+```
+</CodeGroup>
+
+**Retry strategy**: 3 attempts with delays of 1s, 2s, 4s (or uses `Retry-After` header if present).
+
+**Source**: client.ts:141-179
+
+### Resource Not Found (404)
+
+<CodeGroup>
+```typescript Error
+ZenotiApiError: Request failed (404)
+// status: 404
+```
+
+```typescript Handling
+try {
+  const appointment = await getAppointment('invalid-id')
+} catch (error) {
+  if (error instanceof ZenotiApiError && error.status === 404) {
+    console.warn('Appointment not found')
+    // Handle gracefully
+    return null
+  }
+  throw error // Re-throw other errors
+}
+```
+</CodeGroup>
+
+### Validation Errors (400)
+
+Zenoti returns validation errors with field-level details:
+
+<CodeGroup>
+```typescript Error Response
+{
+  "errors": [
+    {
+      "code": "INVALID_DATE_RANGE",
+      "message": "start_date must be before end_date",
+      "field": "start_date"
+    }
+  ],
+  "status": 400
+}
+```
+
+```typescript Handling
+try {
+  const appointments = await listAppointments({
+    centerId: 'abc123',
+    startDate: '2026-03-31',
+    endDate: '2026-03-01', // Invalid: end before start
+  })
+} catch (error) {
+  if (error instanceof ZenotiApiError && error.status === 400) {
+    // Extract field-level errors
+    const fieldErrors = error.response?.errors.map(e => ({
+      field: e.field,
+      message: e.message,
+    }))
+    
+    console.error('Validation errors:', fieldErrors)
+    // Display to user
+    fieldErrors?.forEach(({ field, message }) => {
+      showFieldError(field, message)
+    })
+  }
+}
+```
+</CodeGroup>
+
+### Server Errors (5xx)
+
+Transient server errors are automatically retried. If all retries fail:
+
+<CodeGroup>
+```typescript Error
+ZenotiApiError: Request failed (500)
+```
+
+```typescript Handling
+try {
+  const data = await zenotiRequest('/v1/centers')
+} catch (error) {
+  if (error instanceof ZenotiApiError && error.status >= 500) {
+    console.error('Zenoti server error after retries')
+    // Fall back to cached data or show error state
+    return getCachedCenters()
+  }
+}
+```
+</CodeGroup>
+
+---
+
+## Handling Patterns
+
+### Try-Catch with Type Guards
+
+```typescript
+import { 
+  zenotiRequest, 
+  ZenotiApiError, 
+  ZenotiAuthError 
+} from '@/integrations/zenoti'
+
+try {
+  const data = await zenotiRequest('/v1/appointments', { params })
+} catch (error) {
+  if (error instanceof ZenotiAuthError) {
+    // Authentication failures
+    console.error('Auth failed:', error.message)
+    clearAccessToken()
+    redirectToLogin()
+  } else if (error instanceof ZenotiApiError) {
+    // API errors
+    console.error(`API error (${error.status}):`, error.message)
+    
+    switch (error.status) {
+      case 400:
+        handleValidationError(error.response)
+        break
+      case 404:
+        handleNotFound()
+        break
+      case 429:
+        handleRateLimit()
+        break
+      default:
+        handleGenericError(error)
+    }
+  } else {
+    // Unknown error (network, etc.)
+    console.error('Unexpected error:', error)
+    throw error
+  }
+}
+```
+
+### React Query Error Handling
+
+Hooks automatically handle errors via React Query:
+
+```typescript
+import { useAppointments } from '@/integrations/zenoti'
+import { ZenotiApiError, ZenotiAuthError } from '@/integrations/zenoti'
+
+function AppointmentList() {
+  const { data, error, isLoading, isError } = useAppointments()
+
+  if (isLoading) return <Spinner />
+  
+  if (isError) {
+    if (error instanceof ZenotiAuthError) {
+      return (
+        <ErrorState
+          title="Authentication Failed"
+          message="Please check your Zenoti credentials"
+          action={<Button onClick={goToSettings}>Configure</Button>}
+        />
+      )
+    }
+    
+    if (error instanceof ZenotiApiError) {
+      return (
+        <ErrorState
+          title="Failed to Load Appointments"
+          message={error.message}
+          action={<Button onClick={() => refetch()}>Retry</Button>}
+        />
+      )
+    }
+    
+    return <ErrorState title="Unknown Error" message={error.message} />
+  }
+
+  return <AppointmentGrid appointments={data} />
+}
+```
+
+### Global Error Boundary
+
+Catch unhandled Zenoti errors at the app level:
+
+```typescript
+import { ErrorBoundary } from 'react-error-boundary'
+import { ZenotiApiError, ZenotiAuthError } from '@/integrations/zenoti'
+
+function ErrorFallback({ error, resetErrorBoundary }) {
+  if (error instanceof ZenotiAuthError) {
+    return (
+      <div>
+        <h1>Authentication Error</h1>
+        <p>{error.message}</p>
+        <button onClick={() => {
+          clearAccessToken()
+          resetErrorBoundary()
+        }}>
+          Reconfigure
+        </button>
+      </div>
+    )
+  }
+
+  if (error instanceof ZenotiApiError) {
+    return (
+      <div>
+        <h1>API Error ({error.status})</h1>
+        <p>{error.message}</p>
+        <button onClick={resetErrorBoundary}>Try Again</button>
+      </div>
+    )
+  }
+
+  return <div>Unexpected error: {error.message}</div>
+}
+
+function App() {
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <Dashboard />
+    </ErrorBoundary>
+  )
+}
+```
+
+---
+
+## Retry Configuration
+
+The HTTP client retries transient errors automatically:
+
+```typescript client.ts:141-179
+const MAX_RETRIES = 3
+const RETRY_DELAYS = [1000, 2000, 4000] // ms
+
+for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  const res = await fetch(url, { method, headers, body })
+
+  if (res.ok) return await res.json()
+
+  // Retry on 429 (rate limit) or 5xx (server errors)
+  const isRetryable = 
+    res.status === 429 || (res.status >= 500 && res.status < 600)
+
+  if (isRetryable && attempt < MAX_RETRIES) {
+    // Use Retry-After header if present, else exponential backoff
+    const retryAfter = res.headers.get('Retry-After')
+    const delay = retryAfter 
+      ? parseInt(retryAfter, 10) * 1000 
+      : RETRY_DELAYS[attempt]
+    await sleep(delay)
+    continue
+  }
+
+  // Non-retryable or exhausted retries → throw
+  throw new ZenotiApiError(res.status, errorMessage, errorBody)
+}
+```
+
+**Retryable errors**:
+- 429 (Too Many Requests)
+- 500–599 (Server Errors)
+
+**Non-retryable errors**:
+- 400 (Bad Request)
+- 401 (Unauthorized)
+- 403 (Forbidden)
+- 404 (Not Found)
+- Other 4xx errors
+
+---
+
+## Debugging Tips
+
+### Inspect Full Error Response
+
+```typescript
+try {
+  const data = await zenotiRequest('/v1/appointments', { params })
+} catch (error) {
+  if (error instanceof ZenotiApiError) {
+    console.error('Status:', error.status)
+    console.error('Message:', error.message)
+    console.error('Full response:', JSON.stringify(error.response, null, 2))
+  }
+}
+```
+
+### Log Request Details
+
+```typescript
+import { zenotiRequest } from '@/integrations/zenoti'
+
+const path = '/v1/appointments'
+const options = {
+  params: {
+    center_id: 'abc123',
+    start_date: '2026-03-01',
+    end_date: '2026-03-31',
+  },
+}
+
+console.log('Zenoti request:', { path, options })
+
+try {
+  const data = await zenotiRequest(path, options)
+  console.log('Response:', data)
+} catch (error) {
+  console.error('Request failed:', { path, options, error })
+}
+```
+
+### Check Connection State
+
+```typescript
+import { useZenotiStore } from '@/stores/useZenotiStore'
+import { useZenotiConnectionTest } from '@/integrations/zenoti'
+
+function DebugPanel() {
+  const isConnected = useZenotiStore(s => s.isConnected)
+  const { refetch } = useZenotiConnectionTest()
+
+  const testConnection = async () => {
+    const { isSuccess, data, error } = await refetch()
+    console.log('Connection test:', { isSuccess, data, error })
+  }
+
+  return (
+    <div>
+      <p>Connected: {isConnected ? 'Yes' : 'No'}</p>
+      <button onClick={testConnection}>Test Connection</button>
+    </div>
+  )
+}
+```
+
+---
+
+## Common Issues
+
+### "Missing applicationId, secretKey, or accountName"
+
+**Cause**: Environment variables not set
+
+**Solution**:
+```bash
+# .env
+VITE_ZENOTI_APP_ID=your_app_id
+VITE_ZENOTI_SECRET_KEY=your_secret_key
+VITE_ZENOTI_ACCOUNT_NAME=your_account
+```
+
+### "Token request failed (401)"
+
+**Cause**: Invalid Application ID or Secret Key
+
+**Solution**: Verify credentials in Zenoti Admin > Setup > Apps
+
+### "Request failed (429)" (after retries)
+
+**Cause**: Exceeded Zenoti API rate limits
+
+**Solution**: 
+- Reduce request frequency
+- Implement request batching
+- Contact Zenoti support to increase limits
+
+### "Request failed (404)"
+
+**Cause**: Resource not found (invalid ID or deleted resource)
+
+**Solution**: Validate IDs before making requests
+
+### Network Errors
+
+**Cause**: Network connectivity issues, firewall, etc.
+
+**Solution**:
+```typescript
+try {
+  const data = await zenotiRequest('/v1/centers')
+} catch (error) {
+  if (error instanceof TypeError && error.message.includes('fetch')) {
+    console.error('Network error:', error.message)
+    toast.error('Network error', {
+      description: 'Please check your internet connection',
+    })
+  }
+}
+```
+
+---
+
+## Error Response Examples
+
+### Validation Error
+
+```json
+{
+  "errors": [
+    {
+      "code": "INVALID_PARAMETER",
+      "message": "center_id is required",
+      "field": "center_id"
+    }
+  ],
+  "status": 400
+}
+```
+
+### Authentication Error
+
+```json
+{
+  "errors": [
+    {
+      "code": "INVALID_CREDENTIALS",
+      "message": "Invalid application_id or secret_key"
+    }
+  ],
+  "status": 401
+}
+```
+
+### Rate Limit Error
+
+```json
+{
+  "errors": [
+    {
+      "code": "RATE_LIMIT_EXCEEDED",
+      "message": "You have exceeded the rate limit. Please retry after 60 seconds."
+    }
+  ],
+  "status": 429
+}
+```
+
+### Server Error
+
+```json
+{
+  "errors": [
+    {
+      "code": "INTERNAL_SERVER_ERROR",
+      "message": "An unexpected error occurred. Please try again later."
+    }
+  ],
+  "status": 500
+}
+```
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="HTTP Client" icon="network-wired" href="/api/client">
+    Request handling and retry logic
+  </Card>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Token generation and credential setup
+  </Card>
+  <Card title="React Hooks" icon="react" href="/api/hooks">
+    Error handling in React Query hooks
+  </Card>
+</CardGroup>

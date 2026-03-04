@@ -1,0 +1,702 @@
+---
+title: 'API Endpoints'
+description: 'Complete reference for all Zenoti API endpoint methods'
+---
+
+The `endpoints.ts` module provides type-safe methods for all Zenoti REST API endpoints. Each function is a thin wrapper around `zenotiRequest()` that handles URL construction and parameter serialization.
+
+## Centers (Locations)
+
+### `listCenters()`
+
+List all centers (locations) in the organization.
+
+```typescript
+export async function listCenters(): Promise<ZenotiCenter[]>
+```
+
+<ResponseField name="return" type="ZenotiCenter[]">
+  Array of center objects with full details (address, timezone, rooms, etc.)
+</ResponseField>
+
+**Example**:
+
+```typescript
+import { listCenters } from '@/integrations/zenoti'
+
+const centers = await listCenters()
+console.log(`Found ${centers.length} locations`)
+
+centers.forEach(c => {
+  console.log(`${c.display_name} (${c.city}, ${c.state.code})`)
+})
+```
+
+### `getCenter()`
+
+Get details for a single center.
+
+```typescript
+export async function getCenter(centerId: string): Promise<ZenotiCenter>
+```
+
+<ParamField path="centerId" type="string" required>
+  Zenoti center ID
+</ParamField>
+
+<ResponseField name="return" type="ZenotiCenter">
+  Full center details
+</ResponseField>
+
+**Example**:
+
+```typescript
+const center = await getCenter('abc123')
+console.log(`${center.name} has ${center.rooms.length} rooms`)
+```
+
+---
+
+## Services
+
+### `listServices()`
+
+List all services offered at a specific center.
+
+```typescript
+export async function listServices(
+  centerId: string,
+): Promise<ZenotiService[]>
+```
+
+<ParamField path="centerId" type="string" required>
+  Zenoti center ID
+</ParamField>
+
+<ResponseField name="return" type="ZenotiService[]">
+  Array of services with pricing, duration, and category
+</ResponseField>
+
+**Example**:
+
+```typescript
+const services = await listServices('abc123')
+
+// Filter active services
+const active = services.filter(s => s.is_active)
+
+// Group by category
+const byCategory = active.reduce((acc, s) => {
+  const cat = s.category.name
+  acc[cat] = [...(acc[cat] || []), s]
+  return acc
+}, {})
+```
+
+### `getService()`
+
+Get a single service's details.
+
+```typescript
+export async function getService(
+  centerId: string,
+  serviceId: string,
+): Promise<ZenotiService>
+```
+
+<ParamField path="centerId" type="string" required>
+  Zenoti center ID
+</ParamField>
+
+<ParamField path="serviceId" type="string" required>
+  Zenoti service ID
+</ParamField>
+
+<ResponseField name="return" type="ZenotiService">
+  Full service details
+</ResponseField>
+
+---
+
+## Guests (Clients)
+
+### `searchGuests()`
+
+Search guests at a center with text query and pagination.
+
+```typescript
+export async function searchGuests(
+  params: GuestSearchParams,
+): Promise<ZenotiGuest[]>
+```
+
+<ParamField path="params" type="GuestSearchParams" required>
+  Search parameters object
+</ParamField>
+
+<ParamField path="params.centerId" type="string" required>
+  Center ID to search within
+</ParamField>
+
+<ParamField path="params.query" type="string">
+  Text search on name, email, or phone
+</ParamField>
+
+<ParamField path="params.page" type="number" default={1}>
+  Page number (1-indexed)
+</ParamField>
+
+<ParamField path="params.size" type="number" default={100}>
+  Results per page (max 200)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiGuest[]">
+  Array of guest profiles
+</ResponseField>
+
+**Examples**:
+
+<CodeGroup>
+```typescript Search by Name
+const results = await searchGuests({
+  centerId: 'abc123',
+  query: 'sarah johnson',
+})
+```
+
+```typescript Search by Email
+const results = await searchGuests({
+  centerId: 'abc123',
+  query: 'sarah@example.com',
+})
+```
+
+```typescript Paginated Search
+const page1 = await searchGuests({
+  centerId: 'abc123',
+  page: 1,
+  size: 50,
+})
+
+const page2 = await searchGuests({
+  centerId: 'abc123',
+  page: 2,
+  size: 50,
+})
+```
+</CodeGroup>
+
+### `getGuest()`
+
+Get a single guest's full profile.
+
+```typescript
+export async function getGuest(guestId: string): Promise<ZenotiGuest>
+```
+
+<ParamField path="guestId" type="string" required>
+  Zenoti guest ID
+</ParamField>
+
+<ResponseField name="return" type="ZenotiGuest">
+  Complete guest profile with personal info, loyalty points, visit history
+</ResponseField>
+
+### `listGuestAppointments()`
+
+List past and upcoming appointments for a guest.
+
+```typescript
+export async function listGuestAppointments(
+  guestId: string,
+  opts?: {
+    startDate?: string
+    endDate?: string
+    page?: number
+    size?: number
+  },
+): Promise<ZenotiAppointment[]>
+```
+
+<ParamField path="guestId" type="string" required>
+  Zenoti guest ID
+</ParamField>
+
+<ParamField path="opts.startDate" type="string">
+  ISO date (YYYY-MM-DD) — filter appointments after this date
+</ParamField>
+
+<ParamField path="opts.endDate" type="string">
+  ISO date (YYYY-MM-DD) — filter appointments before this date
+</ParamField>
+
+<ParamField path="opts.page" type="number" default={1}>
+  Page number
+</ParamField>
+
+<ParamField path="opts.size" type="number" default={100}>
+  Results per page
+</ParamField>
+
+<ResponseField name="return" type="ZenotiAppointment[]">
+  Array of appointments
+</ResponseField>
+
+**Example**:
+
+```typescript
+// Get all appointments in March 2026
+const appointments = await listGuestAppointments('guest123', {
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+})
+
+console.log(`${appointments.length} appointments in March`)
+```
+
+---
+
+## Appointments
+
+### `listAppointments()`
+
+List appointments for a center within a date range. **Primary endpoint for the EIP scheduling dashboard.**
+
+```typescript
+export async function listAppointments(
+  params: AppointmentListParams,
+): Promise<ZenotiAppointment[]>
+```
+
+<ParamField path="params" type="AppointmentListParams" required>
+  Query parameters object
+</ParamField>
+
+<ParamField path="params.centerId" type="string" required>
+  Center ID to fetch appointments for
+</ParamField>
+
+<ParamField path="params.startDate" type="string" required>
+  ISO date (YYYY-MM-DD) — start of date range
+</ParamField>
+
+<ParamField path="params.endDate" type="string" required>
+  ISO date (YYYY-MM-DD) — end of date range
+</ParamField>
+
+<ParamField path="params.status" type="number">
+  Filter by status code:
+  - `0` = Booked
+  - `1` = Confirmed
+  - `2` = Checked-in
+  - `4` = Completed
+  - `10` = No-show
+  - `-1` = Cancelled
+</ParamField>
+
+<ParamField path="params.page" type="number" default={1}>
+  Page number
+</ParamField>
+
+<ParamField path="params.size" type="number" default={200}>
+  Results per page (max 200)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiAppointment[]">
+  Array of appointments with full details
+</ResponseField>
+
+**Examples**:
+
+<CodeGroup>
+```typescript This Month
+const appointments = await listAppointments({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+})
+```
+
+```typescript Completed Only
+const completed = await listAppointments({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+  status: 4, // Completed
+})
+```
+
+```typescript No-Shows
+const noShows = await listAppointments({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+  status: 10,
+})
+```
+</CodeGroup>
+
+### `getAppointment()`
+
+Get a single appointment's full details.
+
+```typescript
+export async function getAppointment(
+  appointmentId: string,
+): Promise<ZenotiAppointment>
+```
+
+<ParamField path="appointmentId" type="string" required>
+  Zenoti appointment ID
+</ParamField>
+
+<ResponseField name="return" type="ZenotiAppointment">
+  Full appointment details
+</ResponseField>
+
+### `listAppointmentsAllCenters()`
+
+Fetch appointments across **all centers** for a date range. Used by EIP dashboard when `locationFilter === 'all'`.
+
+```typescript
+export async function listAppointmentsAllCenters(
+  startDate: string,
+  endDate: string,
+): Promise<ZenotiAppointment[]>
+```
+
+<ParamField path="startDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField path="endDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiAppointment[]">
+  Flattened array of appointments from all centers
+</ResponseField>
+
+**Implementation** (endpoints.ts:288-299):
+
+```typescript
+export async function listAppointmentsAllCenters(
+  startDate: string,
+  endDate: string,
+): Promise<ZenotiAppointment[]> {
+  const centers = await listCenters()
+  const results = await Promise.all(
+    centers.map((c) =>
+      listAppointments({ centerId: c.id, startDate, endDate }),
+    ),
+  )
+  return results.flat()
+}
+```
+
+---
+
+## Invoices & Revenue
+
+### `getInvoice()`
+
+Retrieve full invoice details including line items, payments, and taxes.
+
+```typescript
+export async function getInvoice(invoiceId: string): Promise<ZenotiInvoice>
+```
+
+<ParamField path="invoiceId" type="string" required>
+  Zenoti invoice ID
+</ParamField>
+
+<ResponseField name="return" type="ZenotiInvoice">
+  Complete invoice with items, payments, tax, and tips
+</ResponseField>
+
+**Example**:
+
+```typescript
+const invoice = await getInvoice('inv123')
+
+console.log('Total:', invoice.total.amount)
+console.log('Tax:', invoice.tax.amount)
+console.log('Tips:', invoice.tips.amount)
+
+invoice.items.forEach(item => {
+  console.log(`${item.name}: $${item.price.amount}`)
+})
+```
+
+### `listCollections()`
+
+Revenue collections for a center over a date range.
+
+```typescript
+export async function listCollections(
+  params: CollectionsParams,
+): Promise<ZenotiCollection[]>
+```
+
+<ParamField path="params" type="CollectionsParams" required>
+  Query parameters
+</ParamField>
+
+<ParamField path="params.centerId" type="string" required>
+  Center ID
+</ParamField>
+
+<ParamField path="params.startDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField path="params.endDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiCollection[]">
+  Daily revenue summaries with breakdowns by service, product, membership, etc.
+</ResponseField>
+
+**Example**:
+
+```typescript
+const collections = await listCollections({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+})
+
+const totalRevenue = collections.reduce((sum, c) => sum + c.net_revenue, 0)
+console.log(`March revenue: $${totalRevenue.toFixed(2)}`)
+```
+
+---
+
+## Employees / Providers
+
+### `listEmployees()`
+
+List employees at a center.
+
+```typescript
+export async function listEmployees(
+  centerId: string,
+  opts?: { page?: number; size?: number },
+): Promise<ZenotiEmployee[]>
+```
+
+<ParamField path="centerId" type="string" required>
+  Center ID
+</ParamField>
+
+<ParamField path="opts.page" type="number" default={1}>
+  Page number
+</ParamField>
+
+<ParamField path="opts.size" type="number" default={100}>
+  Results per page
+</ParamField>
+
+<ResponseField name="return" type="ZenotiEmployee[]">
+  Array of employee profiles
+</ResponseField>
+
+### `getEmployeePerformance()`
+
+Get employee performance metrics for a date range.
+
+```typescript
+export async function getEmployeePerformance(
+  centerId: string,
+  startDate: string,
+  endDate: string,
+): Promise<ZenotiEmployeePerformance[]>
+```
+
+<ParamField path="centerId" type="string" required>
+  Center ID
+</ParamField>
+
+<ParamField path="startDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField path="endDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiEmployeePerformance[]">
+  Performance metrics including:
+  - Total/completed/cancelled/no-show appointments
+  - Total revenue and average ticket
+  - Utilization rate
+  - Rebooking rate
+</ResponseField>
+
+**Example**:
+
+```typescript
+const performance = await getEmployeePerformance(
+  'abc123',
+  '2026-03-01',
+  '2026-03-31',
+)
+
+performance.forEach(p => {
+  console.log(`Employee ${p.employee_id}:`)
+  console.log(`  Revenue: $${p.total_revenue}`)
+  console.log(`  Avg Ticket: $${p.average_ticket}`)
+  console.log(`  Utilization: ${(p.utilization_rate * 100).toFixed(1)}%`)
+})
+```
+
+### `getEmployeeSales()`
+
+Get employee sales data (same interface as `getEmployeePerformance()`).
+
+```typescript
+export async function getEmployeeSales(
+  centerId: string,
+  startDate: string,
+  endDate: string,
+): Promise<ZenotiEmployeePerformance[]>
+```
+
+---
+
+## Sales Reports
+
+### `getSalesReport()`
+
+Aggregated sales report for a center. **Powers the EIP Revenue Scorecard and DailyMetrics.**
+
+```typescript
+export async function getSalesReport(
+  params: SalesReportParams,
+): Promise<ZenotiSalesReport>
+```
+
+<ParamField path="params" type="SalesReportParams" required>
+  Query parameters
+</ParamField>
+
+<ParamField path="params.centerId" type="string" required>
+  Center ID
+</ParamField>
+
+<ParamField path="params.startDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField path="params.endDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiSalesReport">
+  Sales report with:
+  - Period summary (total revenue, bookings, avg ticket, etc.)
+  - Daily breakdown (revenue, bookings, no-shows per day)
+</ResponseField>
+
+**Example**:
+
+```typescript
+const report = await getSalesReport({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+})
+
+console.log('March Summary:')
+console.log('  Revenue:', report.summary.total_revenue)
+console.log('  Bookings:', report.summary.total_bookings)
+console.log('  Avg Ticket:', report.summary.average_ticket)
+console.log('  No-Shows:', report.summary.no_shows)
+
+// Daily breakdown
+report.daily_breakdown.forEach(day => {
+  console.log(`${day.date}: $${day.revenue} (${day.bookings} bookings)`)
+})
+```
+
+### `getSalesReportsAllCenters()`
+
+Fetch daily sales reports across **all centers** for a date range. Powers the "all locations" aggregate view in the dashboard.
+
+```typescript
+export async function getSalesReportsAllCenters(
+  startDate: string,
+  endDate: string,
+): Promise<ZenotiSalesReport[]>
+```
+
+<ParamField path="startDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField path="endDate" type="string" required>
+  ISO date (YYYY-MM-DD)
+</ParamField>
+
+<ResponseField name="return" type="ZenotiSalesReport[]">
+  Array of sales reports (one per center)
+</ResponseField>
+
+**Implementation** (endpoints.ts:305-316):
+
+```typescript
+export async function getSalesReportsAllCenters(
+  startDate: string,
+  endDate: string,
+): Promise<ZenotiSalesReport[]> {
+  const centers = await listCenters()
+  const results = await Promise.all(
+    centers.map((c) =>
+      getSalesReport({ centerId: c.id, startDate, endDate }),
+    ),
+  )
+  return results
+}
+```
+
+---
+
+## Type Reference
+
+All endpoint methods return Zenoti API response types. Type definitions are available in the source code at `src/integrations/zenoti/types.ts`:
+
+- `ZenotiCenter`
+- `ZenotiService`
+- `ZenotiGuest`
+- `ZenotiAppointment`
+- `ZenotiInvoice`
+- `ZenotiCollection`
+- `ZenotiEmployee`
+- `ZenotiEmployeePerformance`
+- `ZenotiSalesReport`
+
+## Data Mapping
+
+To transform Zenoti types into EIP domain models, use the [Data Mappers](/api/data-mappers):
+
+```typescript
+import { listAppointments, mapAppointments } from '@/integrations/zenoti'
+
+const raw = await listAppointments({ centerId, startDate, endDate })
+const eipAppointments = mapAppointments(raw) // Appointment[]
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Data Mappers" icon="shuffle" href="/api/data-mappers">
+    Transform Zenoti responses to EIP types
+  </Card>
+  <Card title="React Hooks" icon="react" href="/api/hooks">
+    Query hooks with automatic caching
+  </Card>
+  <Card title="HTTP Client" icon="network-wired" href="/api/client">
+    Low-level request function
+  </Card>
+</CardGroup>

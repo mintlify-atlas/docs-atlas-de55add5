@@ -1,0 +1,702 @@
+---
+title: 'React Query Hooks'
+description: 'Cached data fetching with automatic fallback to seed data'
+---
+
+The `hooks.ts` module provides React Query hooks for fetching Zenoti data. Each hook returns EIP-typed data and automatically falls back to seed data when the Zenoti connection is inactive, so the dashboard works identically in demo mode and live mode.
+
+## Overview
+
+All hooks use the same pattern:
+
+1. Check Zenoti connection state from `useZenotiStore`
+2. If connected, fetch from Zenoti API and map to EIP types
+3. If disconnected, use seed data as placeholder
+4. Cache results with configurable stale times
+
+## Cache Strategy
+
+Each hook has a different stale time based on data volatility:
+
+```typescript hooks.ts:54-61
+/** Centers rarely change — cache for 30 min */
+const STALE_LONG = 30 * 60 * 1000
+
+/** Appointments / metrics — cache for 5 min */
+const STALE_MEDIUM = 5 * 60 * 1000
+
+/** Clients — cache for 10 min */
+const STALE_SHORT = 10 * 60 * 1000
+```
+
+| Data Type | Stale Time | Rationale |
+|---|---|---|
+| Locations | 30 min | Rarely change |
+| Services | 30 min | Catalog updates infrequent |
+| Appointments | 5 min | Real-time scheduling changes |
+| Daily Metrics | 5 min | Revenue updates frequently |
+| Clients | 10 min | Profile updates moderately frequent |
+
+---
+
+## Locations (Centers)
+
+### `useLocations()`
+
+Fetch all locations in the organization.
+
+```typescript
+export function useLocations(): UseQueryResult<Location[]>
+```
+
+<ResponseField name="return" type="UseQueryResult<Location[]>">
+  React Query result object with:
+  - `data` — Array of EIP `Location` objects
+  - `isLoading` — Loading state
+  - `error` — Error object if fetch failed
+  - `refetch` — Manual refetch function
+</ResponseField>
+
+**Features**:
+- **Query key**: `['zenoti', 'locations']`
+- **Stale time**: 30 minutes
+- **Fallback**: `seedLocations` from `@/data/seed`
+- **Enabled**: Only when `isConnected === true`
+
+**Example**:
+
+<CodeGroup>
+```typescript Basic Usage
+import { useLocations } from '@/integrations/zenoti'
+
+function LocationSelector() {
+  const { data: locations, isLoading, error } = useLocations()
+
+  if (isLoading) return <Spinner />
+  if (error) return <Error message={error.message} />
+
+  return (
+    <select>
+      {locations.map(loc => (
+        <option key={loc.id} value={loc.id}>
+          {loc.name} ({loc.city}, {loc.state})
+        </option>
+      ))}
+    </select>
+  )
+}
+```
+
+```typescript With Filtering
+function ActiveLocations() {
+  const { data: locations } = useLocations()
+
+  // Filter locations with providers
+  const active = locations?.filter(loc => loc.providers > 0) ?? []
+
+  return (
+    <div>
+      <h2>Active Locations ({active.length})</h2>
+      {active.map(loc => (
+        <LocationCard key={loc.id} location={loc} />
+      ))}
+    </div>
+  )
+}
+```
+</CodeGroup>
+
+---
+
+## Services
+
+### `useServices()`
+
+Fetch services for a specific center.
+
+```typescript
+export function useServices(centerId?: string): UseQueryResult<Service[]>
+```
+
+<ParamField path="centerId" type="string">
+  Center ID to fetch services for. If omitted, returns seed data.
+</ParamField>
+
+<ResponseField name="return" type="UseQueryResult<Service[]>">
+  React Query result with array of EIP `Service` objects
+</ResponseField>
+
+**Features**:
+- **Query key**: `['zenoti', 'services', centerId]`
+- **Stale time**: 30 minutes
+- **Fallback**: `seedServices`
+- **Enabled**: Only when connected AND `centerId` is provided
+
+**Example**:
+
+```typescript
+import { useServices } from '@/integrations/zenoti'
+
+function ServiceList({ centerId }: { centerId: string }) {
+  const { data: services, isLoading } = useServices(centerId)
+
+  if (isLoading) return <Spinner />
+
+  // Group by category
+  const byCategory = services?.reduce((acc, s) => {
+    acc[s.category] = [...(acc[s.category] || []), s]
+    return acc
+  }, {} as Record<string, Service[]>)
+
+  return (
+    <div>
+      {Object.entries(byCategory).map(([category, services]) => (
+        <div key={category}>
+          <h3>{category}</h3>
+          {services.map(s => (
+            <ServiceCard key={s.id} service={s} />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+---
+
+## Appointments
+
+### `useAppointments()`
+
+Fetch appointments for a date range, optionally filtered by center.
+
+```typescript
+export function useAppointments(
+  opts?: UseAppointmentsOpts
+): UseQueryResult<Appointment[]>
+```
+
+<ParamField path="opts" type="UseAppointmentsOpts">
+  Query options object
+</ParamField>
+
+<ParamField path="opts.centerId" type="string">
+  Center ID to filter by. If omitted, fetches from all centers.
+</ParamField>
+
+<ParamField path="opts.daysBack" type="number" default={30}>
+  Number of days back from today to fetch
+</ParamField>
+
+<ResponseField name="return" type="UseQueryResult<Appointment[]>">
+  React Query result with array of EIP `Appointment` objects
+</ResponseField>
+
+**Features**:
+- **Query key**: `['zenoti', 'appointments', centerId ?? 'all', startDate]`
+- **Stale time**: 5 minutes
+- **Fallback**: `seedAppointments`
+- **Multi-center support**: Automatically aggregates all centers when `centerId` is omitted
+
+**Implementation** (hooks.ts:112-124):
+
+```typescript
+export function useAppointments(opts: UseAppointmentsOpts = {}) {
+  const connected = useZenotiStore((s) => s.isConnected)
+  const { centerId, daysBack = 30 } = opts
+  const startDate = daysAgoISO(daysBack)
+  const endDate = todayISO()
+
+  return useQuery<Appointment[]>({
+    queryKey: ['zenoti', 'appointments', centerId ?? 'all', startDate],
+    queryFn: async () => {
+      const raw = centerId
+        ? await api.listAppointments({ centerId, startDate, endDate })
+        : await api.listAppointmentsAllCenters(startDate, endDate)
+      return mapAppointments(raw)
+    },
+    enabled: connected,
+    staleTime: STALE_MEDIUM,
+    placeholderData: seedAppointments,
+  })
+}
+```
+
+**Examples**:
+
+<CodeGroup>
+```typescript Single Center
+import { useAppointments } from '@/integrations/zenoti'
+
+function CenterSchedule({ centerId }: { centerId: string }) {
+  const { data: appointments, isLoading } = useAppointments({ centerId })
+
+  if (isLoading) return <Spinner />
+
+  return <ScheduleGrid appointments={appointments} />
+}
+```
+
+```typescript All Centers
+function DashboardOverview() {
+  const { data: appointments } = useAppointments({ daysBack: 30 })
+
+  const completed = appointments?.filter(a => a.status === 'completed') ?? []
+  const noShows = appointments?.filter(a => a.status === 'no_show') ?? []
+
+  return (
+    <div>
+      <Metric label="Total Appointments" value={appointments?.length} />
+      <Metric label="Completed" value={completed.length} />
+      <Metric label="No-Shows" value={noShows.length} />
+    </div>
+  )
+}
+```
+
+```typescript Custom Date Range
+function MonthlyReport() {
+  // Last 60 days
+  const { data: appointments } = useAppointments({
+    centerId: 'abc123',
+    daysBack: 60,
+  })
+
+  return <ReportTable data={appointments} />
+}
+```
+</CodeGroup>
+
+---
+
+## Clients (Guests)
+
+### `useClients()`
+
+Fetch clients for a specific center.
+
+```typescript
+export function useClients(centerId?: string): UseQueryResult<Client[]>
+```
+
+<ParamField path="centerId" type="string">
+  Center ID to fetch clients for. If omitted, returns seed data.
+</ParamField>
+
+<ResponseField name="return" type="UseQueryResult<Client[]>">
+  React Query result with array of EIP `Client` objects
+</ResponseField>
+
+**Features**:
+- **Query key**: `['zenoti', 'clients', centerId ?? 'all']`
+- **Stale time**: 10 minutes
+- **Fallback**: `seedClients`
+- **Max results**: 200 (configurable via endpoint)
+
+**Example**:
+
+```typescript
+import { useClients } from '@/integrations/zenoti'
+
+function ClientList({ centerId }: { centerId: string }) {
+  const { data: clients, isLoading } = useClients(centerId)
+
+  if (isLoading) return <Spinner />
+
+  // Sort by CLV descending
+  const topClients = [...(clients ?? [])]
+    .sort((a, b) => b.clv - a.clv)
+    .slice(0, 10)
+
+  return (
+    <div>
+      <h2>Top 10 Clients by CLV</h2>
+      {topClients.map(client => (
+        <ClientCard key={client.id} client={client} />
+      ))}
+    </div>
+  )
+}
+```
+
+---
+
+## Daily Metrics (Sales Reports)
+
+### `useDailyMetrics()`
+
+Fetch daily sales metrics for a date range.
+
+```typescript
+export function useDailyMetrics(
+  opts?: UseDailyMetricsOpts
+): UseQueryResult<DailyMetrics[]>
+```
+
+<ParamField path="opts" type="UseDailyMetricsOpts">
+  Query options object
+</ParamField>
+
+<ParamField path="opts.centerId" type="string">
+  Center ID to filter by. If omitted, aggregates all centers.
+</ParamField>
+
+<ParamField path="opts.daysBack" type="number" default={30}>
+  Number of days back from today
+</ParamField>
+
+<ResponseField name="return" type="UseQueryResult<DailyMetrics[]>">
+  React Query result with array of EIP `DailyMetrics` objects (one per day)
+</ResponseField>
+
+**Features**:
+- **Query key**: `['zenoti', 'dailyMetrics', centerId ?? 'all', startDate]`
+- **Stale time**: 5 minutes
+- **Fallback**: `seedDailyMetrics`
+- **Multi-center aggregation**: Combines all centers when `centerId` is omitted
+
+**Implementation** (hooks.ts:158-177):
+
+```typescript
+export function useDailyMetrics(opts: UseDailyMetricsOpts = {}) {
+  const connected = useZenotiStore((s) => s.isConnected)
+  const { centerId, daysBack = 30 } = opts
+  const startDate = daysAgoISO(daysBack)
+  const endDate = todayISO()
+
+  return useQuery<DailyMetrics[]>({
+    queryKey: ['zenoti', 'dailyMetrics', centerId ?? 'all', startDate],
+    queryFn: async () => {
+      if (centerId) {
+        const report = await api.getSalesReport({ centerId, startDate, endDate })
+        return mapSalesReport(report)
+      }
+      // All centers — aggregate
+      const reports = await api.getSalesReportsAllCenters(startDate, endDate)
+      return reports.flatMap(mapSalesReport)
+    },
+    enabled: connected,
+    staleTime: STALE_MEDIUM,
+    placeholderData: seedDailyMetrics,
+  })
+}
+```
+
+**Examples**:
+
+<CodeGroup>
+```typescript Revenue Chart
+import { useDailyMetrics } from '@/integrations/zenoti'
+import { LineChart } from '@/components/charts'
+
+function RevenueChart({ centerId }: { centerId: string }) {
+  const { data: metrics } = useDailyMetrics({ centerId, daysBack: 30 })
+
+  const chartData = metrics?.map(m => ({
+    date: m.date,
+    revenue: m.revenue,
+  })) ?? []
+
+  return <LineChart data={chartData} xKey="date" yKey="revenue" />
+}
+```
+
+```typescript KPI Calculations
+function MonthlyKPIs() {
+  const { data: metrics } = useDailyMetrics({ daysBack: 30 })
+
+  const totalRevenue = metrics?.reduce((sum, m) => sum + m.revenue, 0) ?? 0
+  const avgRevenue = totalRevenue / (metrics?.length ?? 1)
+  const avgUtilization = 
+    metrics?.reduce((sum, m) => sum + m.utilizationRate, 0) / (metrics?.length ?? 1)
+
+  return (
+    <div>
+      <Metric label="Total Revenue" value={`$${totalRevenue.toFixed(2)}`} />
+      <Metric label="Avg Daily Revenue" value={`$${avgRevenue.toFixed(2)}`} />
+      <Metric label="Avg Utilization" value={`${avgUtilization.toFixed(1)}%`} />
+    </div>
+  )
+}
+```
+
+```typescript Multi-Location Comparison
+function LocationComparison() {
+  const { data: allMetrics } = useDailyMetrics({ daysBack: 30 })
+
+  // Group by location
+  const byLocation = allMetrics?.reduce((acc, m) => {
+    acc[m.locationId] = [...(acc[m.locationId] || []), m]
+    return acc
+  }, {} as Record<string, DailyMetrics[]>)
+
+  // Calculate total revenue per location
+  const revenueByLocation = Object.entries(byLocation ?? {}).map(
+    ([locationId, metrics]) => ({
+      locationId,
+      totalRevenue: metrics.reduce((sum, m) => sum + m.revenue, 0),
+    })
+  )
+
+  return <BarChart data={revenueByLocation} />
+}
+```
+</CodeGroup>
+
+---
+
+## Connection Test
+
+### `useZenotiConnectionTest()`
+
+Lightweight query to verify Zenoti credentials. Used by the Settings page "Test Connection" button.
+
+```typescript
+export function useZenotiConnectionTest(): UseQueryResult<{
+  success: boolean
+  centerCount: number
+  centerNames: string[]
+}>
+```
+
+<ResponseField name="return" type="UseQueryResult">
+  React Query result with connection test data:
+  - `success` — Always `true` if query succeeds
+  - `centerCount` — Number of centers found
+  - `centerNames` — Array of center names
+</ResponseField>
+
+**Features**:
+- **Query key**: `['zenoti', 'connectionTest']`
+- **Enabled**: `false` (only runs when explicitly refetched)
+- **Retry**: `false` (fails fast)
+
+**Implementation** (hooks.ts:186-200):
+
+```typescript
+export function useZenotiConnectionTest() {
+  return useQuery({
+    queryKey: ['zenoti', 'connectionTest'],
+    queryFn: async () => {
+      const centers = await api.listCenters()
+      return {
+        success: true,
+        centerCount: centers.length,
+        centerNames: centers.map((c) => c.name),
+      }
+    },
+    enabled: false, // Only run when explicitly refetched
+    retry: false,
+  })
+}
+```
+
+**Example**:
+
+<CodeGroup>
+```typescript Settings Page
+import { useZenotiConnectionTest } from '@/integrations/zenoti'
+
+function SettingsPage() {
+  const { refetch, data, error, isLoading } = useZenotiConnectionTest()
+
+  const handleTestConnection = async () => {
+    const result = await refetch()
+    
+    if (result.isSuccess) {
+      toast.success(`Connected to ${result.data.centerCount} centers`)
+      console.log('Centers:', result.data.centerNames)
+    } else {
+      toast.error(`Connection failed: ${result.error.message}`)
+    }
+  }
+
+  return (
+    <div>
+      <h2>Zenoti Connection</h2>
+      <button onClick={handleTestConnection} disabled={isLoading}>
+        {isLoading ? 'Testing...' : 'Test Connection'}
+      </button>
+      
+      {data && (
+        <div className="success">
+          Connected to {data.centerCount} locations:
+          <ul>
+            {data.centerNames.map(name => <li key={name}>{name}</li>)}
+          </ul>
+        </div>
+      )}
+      
+      {error && (
+        <div className="error">
+          Connection failed: {error.message}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+```typescript With Toast Notifications
+import { toast } from 'sonner'
+
+function TestButton() {
+  const { refetch, isLoading } = useZenotiConnectionTest()
+
+  const handleTest = async () => {
+    const { isSuccess, data, error } = await refetch()
+    
+    if (isSuccess) {
+      toast.success('Connection successful', {
+        description: `Found ${data.centerCount} locations`,
+      })
+    } else {
+      toast.error('Connection failed', {
+        description: error.message,
+      })
+    }
+  }
+
+  return (
+    <button onClick={handleTest} disabled={isLoading}>
+      Test Connection
+    </button>
+  )
+}
+```
+</CodeGroup>
+
+---
+
+## Hook Patterns
+
+### Demo Mode Fallback
+
+All hooks automatically use seed data when disconnected:
+
+```typescript
+const connected = useZenotiStore((s) => s.isConnected)
+
+return useQuery({
+  queryKey: ['zenoti', 'resource'],
+  queryFn: async () => { /* fetch from API */ },
+  enabled: connected, // Only fetch when connected
+  placeholderData: seedData, // Use seed data otherwise
+})
+```
+
+### Manual Refetch
+
+Force refresh data:
+
+```typescript
+function RefreshButton() {
+  const { refetch, isLoading } = useAppointments()
+
+  return (
+    <button onClick={() => refetch()} disabled={isLoading}>
+      {isLoading ? 'Refreshing...' : 'Refresh'}
+    </button>
+  )
+}
+```
+
+### Dependent Queries
+
+Fetch data based on previous query:
+
+```typescript
+function ServiceSelector() {
+  const { data: locations } = useLocations()
+  const [selectedLocationId, setSelectedLocationId] = useState()
+  
+  // Only fetch services after location is selected
+  const { data: services } = useServices(selectedLocationId)
+
+  return (
+    <div>
+      <select onChange={(e) => setSelectedLocationId(e.target.value)}>
+        {locations?.map(loc => <option value={loc.id}>{loc.name}</option>)}
+      </select>
+      
+      {services && (
+        <select>
+          {services.map(s => <option value={s.id}>{s.name}</option>)}
+        </select>
+      )}
+    </div>
+  )
+}
+```
+
+### Error Handling
+
+```typescript
+function DataComponent() {
+  const { data, error, isLoading } = useAppointments()
+
+  if (isLoading) return <Spinner />
+  
+  if (error) {
+    return (
+      <ErrorMessage>
+        Failed to load appointments: {error.message}
+      </ErrorMessage>
+    )
+  }
+
+  return <AppointmentList appointments={data} />
+}
+```
+
+---
+
+## Query Keys
+
+All hooks use consistent query key patterns:
+
+| Hook | Query Key Pattern |
+|---|---|
+| `useLocations()` | `['zenoti', 'locations']` |
+| `useServices(centerId)` | `['zenoti', 'services', centerId]` |
+| `useAppointments(opts)` | `['zenoti', 'appointments', centerId \|\| 'all', startDate]` |
+| `useClients(centerId)` | `['zenoti', 'clients', centerId \|\| 'all']` |
+| `useDailyMetrics(opts)` | `['zenoti', 'dailyMetrics', centerId \|\| 'all', startDate]` |
+| `useZenotiConnectionTest()` | `['zenoti', 'connectionTest']` |
+
+**Invalidating cache**:
+
+```typescript
+import { useQueryClient } from '@tanstack/react-query'
+
+function InvalidateButton() {
+  const queryClient = useQueryClient()
+
+  const handleInvalidate = () => {
+    // Invalidate all Zenoti queries
+    queryClient.invalidateQueries({ queryKey: ['zenoti'] })
+    
+    // Or invalidate specific resource
+    queryClient.invalidateQueries({ queryKey: ['zenoti', 'appointments'] })
+  }
+
+  return <button onClick={handleInvalidate}>Invalidate Cache</button>
+}
+```
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="code" href="/api/endpoints">
+    Raw API methods used by hooks
+  </Card>
+  <Card title="Data Mappers" icon="shuffle" href="/api/data-mappers">
+    Transformation functions applied to query results
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api/error-handling">
+    Handle query errors
+  </Card>
+</CardGroup>

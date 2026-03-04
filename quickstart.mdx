@@ -1,80 +1,264 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart guide
+description: Get up and running with Etienne Intelligence in under 10 minutes
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+This guide walks you through account setup, Zenoti integration, and your first dashboard view. By the end, you'll have real-time revenue intelligence flowing into your platform.
 
-### Step 1: Set up your local environment
+<Note>
+  **Prerequisites:** You need admin access to your Zenoti account to generate API credentials. If you don't have admin rights, contact your Zenoti administrator.
+</Note>
+
+## Step 1: Create your account
+
+<Steps>
+  <Step title="Sign up">
+    Visit [app.etienneintelligence.com](https://app.etienneintelligence.com) and click **Get Started**. Enter your business email and create a secure password.
+  </Step>
+  <Step title="Verify email">
+    Check your inbox for a verification email. Click the confirmation link to activate your account.
+  </Step>
+  <Step title="Choose your role">
+    Select **Business Owner** for full dashboard access or **Staff Member** for task-focused views. You can adjust roles later in Settings.
+  </Step>
+</Steps>
+
+## Step 2: Connect Zenoti
+
+Etienne Intelligence requires a live connection to your Zenoti account to pull appointment, guest, and revenue data.
+
+### Generate Zenoti API credentials
+
+<Steps>
+  <Step title="Access Zenoti admin panel">
+    Log into your Zenoti account and navigate to **Admin > Setup > Apps**.
+  </Step>
+  <Step title="Create backend app">
+    Click **Add New App** and select **Backend Application**. Name it "Etienne Intelligence" for easy identification.
+  </Step>
+  <Step title="Copy credentials">
+    Zenoti will generate three values:
+    - **Application ID** — Your unique app identifier
+    - **Secret Key** — Authentication token (treat like a password)
+    - **API Key** — Long-lived access key (valid ~1 year)
+
+    Copy these immediately—Zenoti shows the Secret Key only once.
+  </Step>
+  <Step title="Note your data center">
+    Identify your Zenoti region:
+    - **US:** `https://api.zenoti.com`
+    - **EU:** `https://api.zenoti.eu`
+
+    This is your base URL for API calls.
+  </Step>
+</Steps>
+
+<Warning>
+  **Security:** Never share your Secret Key or API Key. These credentials grant full access to your Zenoti data. Store them securely.
+</Warning>
+
+### Enter credentials in Etienne
+
+<Steps>
+  <Step title="Navigate to integrations">
+    In your Etienne dashboard, click **Settings** in the sidebar, then select **Integrations**.
+  </Step>
+  <Step title="Configure Zenoti connection">
+    Fill in the Zenoti integration form:
+    ```plaintext
+    Base URL: https://api.zenoti.com (or .eu)
+    API Key: [paste from Zenoti]
+    Application ID: [paste from Zenoti]
+    Secret Key: [paste from Zenoti]
+    Account Name: [your Zenoti organization name]
+    ```
+  </Step>
+  <Step title="Test connection">
+    Click **Test Connection**. Etienne will verify credentials and fetch a sample of your data. You should see a success message within 5-10 seconds.
+  </Step>
+  <Step title="Enable sync">
+    Toggle **Enable Real-Time Sync** to start pulling data. The initial sync may take 2-5 minutes depending on your data volume.
+  </Step>
+</Steps>
+
+<Check>
+  **Sync active!** Look for the green "Synced" badge in the top-right corner of your dashboard. This indicates live data flow.
+</Check>
+
+## Step 3: Explore your dashboard
+
+Once Zenoti is connected, your dashboard populates with real-time insights.
+
+### Revenue intelligence hub (owner view)
+
+Navigate to **Dashboard** (home icon in sidebar). You'll see:
+
+<CardGroup cols={2}>
+  <Card title="Total revenue" icon="dollar-sign">
+    30-day revenue across all locations with trend comparison vs. previous period
+  </Card>
+  <Card title="Revenue at risk" icon="triangle-exclamation">
+    Identified gaps from no-shows, missed calls, and upsell opportunities—recovered by AI
+  </Card>
+  <Card title="No-show rate" icon="calendar-xmark">
+    Percentage of missed appointments with AI-driven prevention strategies
+  </Card>
+  <Card title="Avg response time" icon="clock">
+    How quickly your team (and AI) responds to customer inquiries across all channels
+  </Card>
+</CardGroup>
+
+**Revenue trend chart** — 30-day daily revenue visualization with interactive tooltips
+
+**AI opportunities** — Live alerts like:
+- "3 high-value clients haven't rebooked in 60 days — potential $3,200 loss"
+- "Williamsburg location showing 12% utilization drop this week"
+- "5 missed calls after hours yesterday — $2,100 in bookings at risk"
+
+<Tip>
+  Click any opportunity card to drill into details and take action directly from the dashboard.
+</Tip>
+
+### Staff view
+
+If you selected **Staff Member** role, your dashboard shows:
+
+- **Your bookings today** — Appointments assigned to you with client details
+- **Conversion rate** — Your booking success percentage with trend data
+- **Pending follow-ups** — AI-generated task list (callbacks, confirmations, etc.)
+- **Today's tasks** — Prioritized by urgency (urgent, pending, AI-handled)
+
+## Step 4: Set up multi-location tracking
+
+If you operate multiple centers, configure location-specific views.
+
+<Steps>
+  <Step title="Add locations">
+    Go to **Settings > Locations**. Your Zenoti centers should auto-populate. Verify names and addresses.
+  </Step>
+  <Step title="Use location filter">
+    In the top navigation bar, find the location dropdown. Select a specific center or choose **All Centers** for aggregated view.
+  </Step>
+  <Step title="Compare performance">
+    On the main dashboard, scroll to **Location Performance** (visible when "All Centers" is selected). View side-by-side revenue and utilization metrics.
+  </Step>
+</Steps>
+
+## Step 5: Activate AI agents
+
+Etienne's AI agents start working automatically after your first sync. Verify they're online:
+
+<Steps>
+  <Step title="Check agent status">
+    On your dashboard, find the **AI Agents** card. You should see 9 agents:
+    - **Conversation Analyst** (command center)
+    - **Response Monitor** (command center)
+    - **Escalation Tracker** (command center)
+    - **Schedule Analyst** (scheduling)
+    - **No-Show Predictor** (scheduling)
+    - **Demand Forecaster** (scheduling)
+    - **Revenue Analyst** (intelligence)
+    - **Opportunity Scout** (intelligence)
+    - **Report Generator** (intelligence)
+  </Step>
+  <Step title="Verify online status">
+    Each agent should show a green "Online" badge and recent activity timestamp (e.g., "2 min ago").
+  </Step>
+  <Step title="Review tasks handled">
+    Hover over an agent to see total tasks processed. Conversation Analyst typically shows highest activity.
+  </Step>
+</Steps>
+
+<Warning>
+  **Agent errors:** If any agent shows "Error" status, check your Zenoti API credentials. Expired API keys cause agent failures.
+</Warning>
+
+## Step 6: Try the AI analyst
+
+Ask natural language questions about your business data.
+
+<Steps>
+  <Step title="Open AI analyst">
+    Navigate to **Intelligence > AI Analyst** (brain icon in sidebar).
+  </Step>
+  <Step title="Ask a question">
+    Try one of these:
+    - "Which center is underperforming this month?"
+    - "How much revenue are we losing to no-shows?"
+    - "Compare SoHo vs Williamsburg performance"
+    - "What should I focus on this week?"
+  </Step>
+  <Step title="Review the response">
+    The AI analyst streams a detailed answer with:
+    - Specific metrics pulled from your Zenoti data
+    - Comparison tables across locations or time periods
+    - Actionable recommendations based on patterns identified
+  </Step>
+</Steps>
+
+<Tip>
+  The AI analyst analyzes your appointments, guests, invoices, and opportunities data in real time. The more specific your question, the better the answer.
+</Tip>
+
+## Common first-time questions
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="How often does data sync?" icon="rotate">
+    Real-time sync updates every 5 minutes. Major metrics (revenue, appointments) refresh continuously. You can manually trigger a sync from **Settings > Integrations**.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+
+  <Accordion title="Can I customize which metrics appear?" icon="sliders">
+    Yes. Go to **Settings > Dashboard Preferences** to show/hide metric cards and rearrange dashboard sections. Changes save per user role.
   </Accordion>
-</AccordionGroup>
 
-### Step 2: Deploy your changes
+  <Accordion title="How do I add team members?" icon="user-plus">
+    Navigate to **Settings > Team**. Click **Invite Member**, enter their email, and assign a role (Owner or Staff). They'll receive an onboarding email.
+  </Accordion>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+  <Accordion title="What if my Zenoti data is wrong?" icon="bug">
+    Etienne displays data as-is from Zenoti. Fix source data in Zenoti, then trigger a manual sync in Etienne under **Settings > Integrations > Sync Now**.
+  </Accordion>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
+  <Accordion title="Do AI agents make changes to Zenoti?" icon="shield">
+    No. AI agents are read-only. They analyze data and suggest actions but never modify appointments, clients, or invoices without explicit human approval.
   </Accordion>
 </AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card
+    title="Conversation command center"
+    icon="messages"
+    href="/command-center/overview"
+  >
+    Set up multi-channel customer communication handling
+  </Card>
+  <Card
+    title="Smart scheduling"
+    icon="calendar"
+    href="/scheduling/overview"
+  >
+    Configure no-show prediction and utilization optimization
+  </Card>
+  <Card
+    title="Revenue intelligence"
+    icon="chart-line"
+    href="/intelligence/overview"
+  >
+    Deep dive into revenue analytics and opportunity detection
+  </Card>
+  <Card
+    title="API reference"
+    icon="code"
+    href="/api-reference/introduction"
+  >
+    Build custom integrations with Etienne's REST API
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+<Check>
+  **You're all set!** Your Etienne Intelligence platform is live and analyzing your business. Check back daily for new opportunities identified by AI.
+</Check>

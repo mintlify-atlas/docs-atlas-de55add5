@@ -1,0 +1,759 @@
+---
+title: AI Agent System
+description: Understanding the autonomous AI agents that power Etienne Intelligence
+icon: robot
+---
+
+Etienne Intelligence is powered by 9 specialized AI agents that work autonomously across your business, handling thousands of tasks daily without human intervention.
+
+## Agent Architecture
+
+Each AI agent is purpose-built for a specific domain, allowing for deeper expertise and better performance than a single generalist AI.
+
+<CardGroup cols={3}>
+  <Card title="Command Center" icon="messages">
+    3 agents managing conversations
+  </Card>
+  <Card title="Scheduling" icon="calendar">
+    3 agents optimizing appointments  
+  </Card>
+  <Card title="Intelligence" icon="brain">
+    3 agents analyzing revenue
+  </Card>
+</CardGroup>
+
+## Agent Status Indicators
+
+Every agent displays a real-time status visible throughout the platform:
+
+### Online (Green Pulse)
+
+**Visual:** ● with animated pulsing ring
+
+**Meaning:** Agent is actively processing tasks and responding to events in real-time.
+
+**What the agent is doing:**
+- Monitoring for new tasks (conversations, bookings, alerts)
+- Processing queued work
+- Learning from outcomes to improve performance
+- Communicating with other agents when needed
+
+**Typical state:** 90%+ of the time for most agents
+
+### Idle (Yellow)
+
+**Visual:** ◐ solid yellow dot
+
+**Meaning:** Agent is waiting for new tasks. No current work in queue.
+
+**What this means:**
+- Not an error — agent is healthy and ready
+- Common for batch-processing agents (Demand Forecaster, Report Generator)
+- Will transition to Online when triggered
+
+**Example:** Demand Forecaster runs weekly analyses, so it's Idle between runs.
+
+### Error (Red Pulse)
+
+**Visual:** ⚠ with animated pulsing ring  
+
+**Meaning:** Agent encountered an issue and is attempting to recover.
+
+**Common causes:**
+- Temporary API rate limit (Zenoti, Anthropic)
+- Network connectivity hiccup
+- Unexpected data format
+- High computational load
+
+**Auto-recovery:**
+Agents automatically retry every 2 minutes. 95% of errors resolve within 10 minutes.
+
+**When to contact support:**
+- Error persists >30 minutes
+- Multiple agents in error state simultaneously
+- Critical agent (Conversation Analyst, Response Monitor) stuck in error
+
+<Warning>
+If you see the Response Monitor in error state during business hours, contact support immediately. This impacts your ability to respond to customer inquiries.
+</Warning>
+
+## Command Center Agents
+
+Three agents work together to manage all customer communications:
+
+### Conversation Analyst
+
+**Type:** Analysis  
+**Module:** Command Center  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 1,247 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Voice Call Transcription">
+    - Real-time speech-to-text conversion
+    - Speaker diarization (AI vs. Client vs. Staff)
+    - Conversation summarization
+    - Sentiment detection (positive/neutral/negative)
+  </Accordion>
+  
+  <Accordion title="Intent Recognition">
+    - Booking request detection
+    - Question vs. complaint classification
+    - Urgency assessment
+    - VIP client identification
+  </Accordion>
+  
+  <Accordion title="Opportunity Identification">
+    - Upsell potential in conversation
+    - Package deal suitability
+    - Client education needs
+    - Referral opportunities
+  </Accordion>
+  
+  <Accordion title="Escalation Detection">
+    - Medical concern keywords
+    - Negative sentiment patterns  
+    - Billing dispute language
+    - Policy exception requests
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Speech recognition:** Deepgram real-time ASR
+- **Natural language:** Claude 4.5 Sonnet
+- **Sentiment:** Custom model trained on med spa conversations
+
+**Performance metrics:**
+- 98.7% transcription accuracy
+- 94% intent classification accuracy  
+- 89% escalation prediction accuracy
+- Less than 2 second analysis latency
+
+### Response Monitor
+
+**Type:** Monitoring  
+**Module:** Command Center  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 2,381 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Response Time Tracking">
+    - Monitors all incoming inquiries across channels
+    - Timestamps first response
+    - Calculates and reports response time SLAs
+    - Alerts on delayed responses (>5 minutes)
+  </Accordion>
+  
+  <Accordion title="Conversation Management">
+    - Routes SMS and web chat conversations
+    - Manages conversation state (active/waiting/resolved)
+    - Ensures no inquiry goes unanswered
+    - Handles conversation handoffs (AI to staff)
+  </Accordion>
+  
+  <Accordion title="Multi-Channel Coordination">
+    - Recognizes same client across channels
+    - Prevents duplicate responses
+    - Maintains conversation history context
+    - Syncs updates across platforms
+  </Accordion>
+  
+  <Accordion title="After-Hours Coverage">
+    - 24/7 monitoring (no downtime)
+    - Instant response to after-hours inquiries
+    - Flags urgent issues for on-call staff
+    - Tracks after-hours conversion rates
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Message processing:** Custom event queue system
+- **Response generation:** Claude 4.5 Sonnet with RAG
+- **Context memory:** Vector database for conversation history
+
+**Performance metrics:**
+- 99.2% uptime (including after-hours)
+- 8-12 second average response time
+- Zero missed inquiries (100% response rate)
+- 78% AI resolution rate (no human needed)
+
+### Escalation Tracker
+
+**Type:** Tracking  
+**Module:** Command Center  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 312 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Escalation Routing">
+    - Identifies appropriate team member for each escalation
+    - Considers expertise, availability, and workload
+    - Provides full context and transcript
+    - Tracks handoff completion
+  </Accordion>
+  
+  <Accordion title="Priority Management">
+    - Assigns urgency levels (urgent/pending/normal)
+    - Re-prioritizes based on client responses
+    - Escalates further if no staff pickup within SLA
+    - Manages VIP client priority queue
+  </Accordion>
+  
+  <Accordion title="Resolution Monitoring">
+    - Tracks time-to-resolution for escalations
+    - Follows up if conversation stalls
+    - Requests client satisfaction after resolution
+    - Feeds resolution patterns back to training
+  </Accordion>
+  
+  <Accordion title="Feedback Loop">
+    - Analyzes why escalations occurred
+    - Identifies AI knowledge gaps
+    - Recommends training data additions
+    - Reduces future escalation rate
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Routing logic:** Multi-factor optimization algorithm
+- **Priority scoring:** ML model trained on outcomes
+- **Tracking system:** Real-time event stream processing
+
+**Performance metrics:**
+- Less than 15 minute average staff pickup time
+- 92% first-contact resolution
+- 18% month-over-month reduction in escalation rate (AI learning)
+- 4.6/5 average client satisfaction on escalated issues
+
+## Scheduling Agents
+
+Three agents collaborate to optimize your appointment book:
+
+### Schedule Analyst
+
+**Type:** Scheduling  
+**Module:** Scheduling  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 1,893 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Utilization Analysis">
+    - Calculates real-time utilization by provider, room, location
+    - Identifies underutilized time slots
+    - Predicts utilization 7-14 days out
+    - Recommends slot consolidation opportunities
+  </Accordion>
+  
+  <Accordion title="Waitlist Management">
+    - Matches waitlist clients to cancellations in under 30 seconds
+    - Prioritizes by VIP status, wait time, service value
+    - Sends instant notifications to matched clients
+    - Tracks waitlist conversion rates
+  </Accordion>
+  
+  <Accordion title="Booking Optimization">
+    - Routes new bookings to optimize utilization
+    - Reserves prime slots for high-value services
+    - Balances workload across providers
+    - Suggests alternative times for better efficiency
+  </Accordion>
+  
+  <Accordion title="Multi-Appointment Coordination">
+    - Books multiple services in logical sequence
+    - Identifies room/provider conflicts
+    - Optimizes same-day multi-service bookings
+    - Manages couple/group bookings
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Optimization engine:** Constraint satisfaction solver
+- **Matching algorithm:** Weighted scoring with real-time updates
+- **Prediction model:** Time series forecasting (Prophet)
+
+**Performance metrics:**
+- 68% waitlist conversion rate
+- 18.5% average utilization improvement
+- Under 30 second waitlist fill time
+- 94% booking accuracy (no double-books)
+
+### No-Show Predictor
+
+**Type:** Prediction  
+**Module:** Scheduling  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 647 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Risk Scoring">
+    - Calculates no-show probability for every appointment
+    - Updates scores as new signals arrive (confirmations, etc.)
+    - Categorizes as low/medium/high risk
+    - Triggers prevention workflows for high-risk
+  </Accordion>
+  
+  <Accordion title="Prevention Automation">
+    - Sends 24-hour reminders to medium+ risk
+    - Sends 2-hour reminders to high risk
+    - Personalized messaging based on client preferences
+    - One-click confirm/cancel links
+  </Accordion>
+  
+  <Accordion title="Pattern Learning">
+    - Identifies client-specific no-show patterns
+    - Day-of-week and time-of-day correlations
+    - Service type risk factors
+    - Lead time impact on no-show likelihood
+  </Accordion>
+  
+  <Accordion title="Intervention Tracking">
+    - Measures prevention success rate by strategy
+    - A/B tests reminder timing and messaging
+    - Calculates ROI of no-show prevention
+    - Feeds results back to prediction model
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Prediction model:** Gradient boosting (XGBoost) with 15+ features
+- **Reminder system:** Multi-channel message orchestration
+- **A/B testing:** Bayesian optimization for message variants
+
+**Performance metrics:**
+- 73% prevention success rate for high-risk appointments
+- 57% overall no-show rate reduction
+- 85% prediction accuracy (correctly identifies high-risk)
+- $24,000-$35,000 monthly revenue saved per location
+
+### Demand Forecaster
+
+**Type:** Analytics  
+**Module:** Scheduling  
+**Status:** ◐ Idle (typical)  
+**Tasks Handled:** 89 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Demand Prediction">
+    - Forecasts appointment demand by day/time/service
+    - Identifies seasonal patterns
+    - Predicts impact of marketing campaigns
+    - Projects capacity needs 30-90 days out
+  </Accordion>
+  
+  <Accordion title="Staffing Recommendations">
+    - Suggests optimal provider schedules
+    - Identifies overstaffed vs. understaffed periods
+    - Recommends cross-training opportunities
+    - Calculates staffing ROI scenarios
+  </Accordion>
+  
+  <Accordion title="Pricing Strategy">
+    - Identifies price-sensitive vs. price-insensitive time slots
+    - Recommends dynamic pricing opportunities
+    - Suggests promotional timing for maximum impact
+    - Models revenue impact of pricing changes
+  </Accordion>
+  
+  <Accordion title="Capacity Planning">
+    - Projects when current capacity will be insufficient
+    - Models scenarios (new provider, new room, new location)
+    - Estimates revenue impact of expansion
+    - Identifies optimal timing for growth investments
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Forecasting:** Facebook Prophet with custom seasonality
+- **Scenario modeling:** Monte Carlo simulation
+- **Recommendation engine:** Multi-objective optimization
+
+**Performance metrics:**
+- 89% forecast accuracy (within 10% of actual demand)
+- 12% revenue increase from optimized staffing
+- 3-6 month advance warning on capacity constraints
+- Runs weekly (hence typically shows "Idle" status)
+
+<Info>
+The Demand Forecaster runs comprehensive analyses every Sunday night. It's normal to see "Idle" status during the week. Check the dashboard on Monday mornings for new insights.
+</Info>
+
+## Intelligence Agents
+
+Three agents power your revenue analytics:
+
+### Revenue Analyst
+
+**Type:** Analytics  
+**Module:** Intelligence  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 412 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Revenue Attribution">
+    - Tracks revenue by source (AI, staff, online, walk-in)
+    - Calculates AI contribution vs. baseline
+    - Attributes revenue to marketing channels
+    - Measures ROI of AI system
+  </Accordion>
+  
+  <Accordion title="Trend Analysis">
+    - Identifies revenue trends (daily, weekly, monthly)
+    - Detects anomalies and investigates causes
+    - Compares locations and providers
+    - Projects future revenue based on trends
+  </Accordion>
+  
+  <Accordion title="Gap Identification">
+    - Calculates response gap (slow/missed inquiries)
+    - Measures no-show prevention impact
+    - Identifies upsell opportunities missed
+    - Quantifies after-hours revenue capture
+  </Accordion>
+  
+  <Accordion title="AI Analyst Chatbot">
+    - Powers conversational business intelligence
+    - Answers natural language questions
+    - Generates custom analyses on demand
+    - Provides actionable recommendations
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Analytics engine:** Custom Python + Pandas + NumPy
+- **Attribution model:** Multi-touch attribution with decay
+- **Chatbot:** Claude 4.5 Sonnet with RAG over your data
+
+**Performance metrics:**
+- 97% revenue attribution accuracy (validated against Zenoti)
+- Under 5 second response time for chatbot queries
+- 92% user satisfaction with chatbot answers
+- $30K-$50K monthly revenue gaps identified per location
+
+### Opportunity Scout
+
+**Type:** Analytics  
+**Module:** Intelligence  
+**Status:** ● Online (typical)  
+**Tasks Handled:** 238 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Opportunity Discovery">
+    - Scans for churn risk (clients not returning)
+    - Identifies rebooking opportunities
+    - Finds upsell gaps (clients who usually bundle)
+    - Detects underutilized capacity
+  </Accordion>
+  
+  <Accordion title="Value Quantification">
+    - Estimates revenue potential for each opportunity
+    - Calculates probability of conversion
+    - Prioritizes by expected value
+    - Tracks opportunity decay over time
+  </Accordion>
+  
+  <Accordion title="Recommendation Engine">
+    - Suggests specific actions for each opportunity
+    - Provides messaging templates
+    - Recommends optimal timing for outreach
+    - Assigns to appropriate team member
+  </Accordion>
+  
+  <Accordion title="Outcome Tracking">
+    - Monitors opportunity resolution
+    - Measures conversion rate by opportunity type
+    - Calculates actual revenue captured
+    - Improves recommendations based on results
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Discovery:** Pattern matching + anomaly detection
+- **Valuation:** Regression models trained on historical conversions
+- **Recommendation:** Reinforcement learning (improving over time)
+
+**Performance metrics:**
+- 40-60 opportunities identified per location per month
+- 58% conversion rate when acted upon
+- $8,000-$15,000 monthly revenue from opportunity actions
+- Hourly scan frequency (always finding fresh opportunities)
+
+### Report Generator
+
+**Type:** Reporting  
+**Module:** Intelligence  
+**Status:** ◐ Idle / ⚠ Error (typical)  
+**Tasks Handled:** 156 (monthly average)
+
+**Responsibilities:**
+
+<AccordionGroup>
+  <Accordion title="Scheduled Reports">
+    - Weekly performance summary (sent Mondays)
+    - Monthly executive report (sent 1st of month)
+    - Custom recurring reports (user-configured)
+    - Automated distribution via email
+  </Accordion>
+  
+  <Accordion title="Custom Analysis">
+    - Ad-hoc report generation on demand
+    - Custom date ranges and filters
+    - Comparative analysis (locations, providers, periods)
+    - Export to PDF, Excel, CSV
+  </Accordion>
+  
+  <Accordion title="Data Visualization">
+    - Charts and graphs for all metrics
+    - Location comparison dashboards
+    - Trend visualizations
+    - Executive summary slides
+  </Accordion>
+  
+  <Accordion title="Compliance Documentation">
+    - HIPAA-compliant data handling
+    - Audit trail generation
+    - Data retention policy enforcement
+    - Regulatory reporting support
+  </Accordion>
+</AccordionGroup>
+
+**Technology:**
+- **Report engine:** Custom templating system
+- **Data export:** Pandas + Openpyxl + ReportLab
+- **Scheduling:** Cron-based job system
+
+**Performance metrics:**
+- 98% on-time report delivery
+- Under 5 minute generation time for standard reports
+- Supports 50+ custom report templates
+- Note: Often shows Idle (waiting for schedule) or Error (resource-intensive jobs)
+
+<Note>
+The Report Generator is computationally expensive and may show Error status during large report generation. Jobs are queued and will complete. Only contact support if error persists >30 minutes.
+</Note>
+
+## Inter-Agent Communication
+
+Agents don't work in isolation—they communicate to provide seamless experiences:
+
+### Example: Booking Flow
+
+<Steps>
+  <Step title="Response Monitor receives inquiry">
+    Client sends web chat message: "Can I book Botox this Saturday?"
+    
+    Response Monitor detects booking intent.
+  </Step>
+  
+  <Step title="Conversation Analyst extracts details">
+    - Service: Botox
+    - Preferred day: Saturday  
+    - Location: (inferred from IP or asks client)
+    - No specific time mentioned
+  </Step>
+  
+  <Step title="Schedule Analyst finds optimal slot">
+    - Checks Saturday availability
+    - Considers utilization (slots other services to balance)
+    - Offers 10 AM, 2 PM, 4 PM (avoiding over-booking Dr. Chen)
+  </Step>
+  
+  <Step title="No-Show Predictor assesses risk">
+    - New client = higher baseline risk
+    - Web chat booking = medium risk (vs. phone = lower)
+    - Saturday = higher risk
+    - Calculates 45% no-show probability
+    - Tags as "medium risk" for automated reminders
+  </Step>
+  
+  <Step title="Response Monitor confirms booking">
+    Sends confirmation:
+    "Great! You're booked for Botox on Saturday at 2 PM at SoHo with Dr. Chen. Total is $450. Confirmation sent to your email!"
+  </Step>
+  
+  <Step title="Opportunity Scout checks for upsell">
+    Analyzes:
+    - Botox clients at this location also book Hydrafacial 40% of the time
+    - Suggests add-on
+    
+    Response Monitor: "Many clients love adding a Hydrafacial ($250) to their Botox visit. Interested?"
+  </Step>
+  
+  <Step title="Revenue Analyst tracks attribution">
+    - Logs booking source: Web chat (AI)
+    - Revenue: $450 (or $700 if Hydrafacial added)
+    - Attributes to "After-hours capture" if outside business hours
+    - Updates Intelligence Hub metrics
+  </Step>
+</Steps>
+
+**Total interaction time:** 8-12 seconds  
+**Agents involved:** 5  
+**Human intervention:** Zero
+
+## Agent Learning & Improvement
+
+All agents use machine learning to improve over time:
+
+### What Agents Learn From
+
+**Conversation outcomes:**
+- Which responses led to bookings vs. abandonment
+- Optimal phrasing for common questions
+- When to escalate vs. continue handling
+- Sentiment patterns that predict client satisfaction
+
+**Scheduling patterns:**
+- Which no-show predictions were accurate
+- Effectiveness of different reminder timing/messaging
+- Utilization optimization success rates
+- Waitlist conversion factors
+
+**Revenue analytics:**
+- Which opportunities had highest conversion
+- Accuracy of demand forecasts
+- Attribution model refinements
+- Chatbot answer quality ratings
+
+### Continuous Improvement
+
+**Weekly model updates:**
+- Conversation Analyst: Retrained on last week's conversations
+- No-Show Predictor: Updated coefficients based on actual outcomes
+- Opportunity Scout: Adjusted value estimates based on conversions
+
+**Monthly reviews:**
+- Response Monitor: Optimize routing logic
+- Schedule Analyst: Refine optimization algorithms
+- Revenue Analyst: Validate attribution accuracy
+
+**Quarterly enhancements:**
+- New features based on user feedback
+- Integration of latest AI model improvements (e.g., Claude upgrades)
+- Performance benchmarking and tuning
+
+<Info>
+You don't need to do anything to trigger these improvements. Agents automatically learn from every interaction. The longer you use Etienne, the better it performs for your specific business.
+</Info>
+
+## Agent Monitoring & Health
+
+### Dashboard Visibility
+
+Every module (Dashboard, Command Center, Scheduling, Intelligence) shows the agents relevant to that module.
+
+**What you see:**
+- Agent name and type
+- Real-time status (Online/Idle/Error)
+- Tasks handled (monthly count)
+- Last activity timestamp
+
+### Health Checks
+
+Every agent performs self-checks every 60 seconds:
+
+1. **Connectivity:** Can reach all required APIs (Zenoti, Anthropic, etc.)
+2. **Performance:** Processing tasks within SLA (under 5 second response time)
+3. **Accuracy:** Recent predictions/actions within quality thresholds
+4. **Queue depth:** Not backed up with too many pending tasks
+
+If any check fails, agent status changes to Error and auto-recovery begins.
+
+### Support Escalation
+
+You should contact support if:
+
+**Critical agents in error >10 minutes:**
+- Conversation Analyst
+- Response Monitor
+- Schedule Analyst
+
+These impact live customer interactions.
+
+**Multiple agents in error simultaneously:**
+Suggests system-wide issue rather than individual agent problem.
+
+**Agent stuck in error >30 minutes:**
+Auto-recovery should have resolved by now.
+
+**When contacting support, provide:**
+1. Agent name and status
+2. Time error started
+3. Screenshot of agent status panel
+4. Any error messages visible in UI
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Check agent status daily">
+    Make it part of your opening routine:
+    
+    1. Open Dashboard
+    2. Scroll to AI Agents module
+    3. Verify all critical agents show Online (green)
+    4. If any errors, wait 5 minutes and check again
+    5. If error persists, contact support
+    
+    Takes under 30 seconds and prevents issues.
+  </Accordion>
+  
+  <Accordion title="Trust the agents, but verify">
+    Agents are highly accurate but not perfect:
+    
+    - Spot-check AI conversations weekly (review 10-15)
+    - Compare AI bookings to what you would have done
+    - Verify no-show predictions after appointments occur
+    - Validate opportunity recommendations before acting
+    
+    This builds confidence and identifies edge cases for improvement.
+  </Accordion>
+  
+  <Accordion title="Provide feedback on agent actions">
+    When you see something wrong:
+    
+    - Use "Report Issue" button in conversation transcripts
+    - Describe what should have happened
+    - Your feedback directly improves the agents
+    
+    Example: If AI escalated a conversation unnecessarily, report it. The Escalation Tracker will learn.
+  </Accordion>
+  
+  <Accordion title="Monitor task counts over time">
+    Track "Tasks Handled" counts month-over-month:
+    
+    - Growing counts = agents handling more (good, means business growing)
+    - Declining counts = potential issue (less activity, or agent not working)
+    - Sudden spikes = investigate (could be error causing false triggers)
+    
+    Example: If Response Monitor usually handles ~2,400 tasks/month and suddenly jumps to 8,000, investigate why.
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Dashboard" icon="chart-line" href="/features/dashboard">
+    View all agent statuses in one place
+  </Card>
+  <Card title="Command Center" icon="messages" href="/features/command-center">
+    See conversation agents in action
+  </Card>
+  <Card title="Intelligence Hub" icon="brain" href="/features/intelligence">
+    Interact with the Revenue Analyst chatbot
+  </Card>
+</CardGroup>

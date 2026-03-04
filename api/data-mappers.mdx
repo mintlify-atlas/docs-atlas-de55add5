@@ -1,0 +1,589 @@
+---
+title: 'Data Mappers'
+description: 'Transform Zenoti API responses into EIP domain types'
+---
+
+The `mappers.ts` module provides functions that transform Zenoti API response types into the Etienne Intelligence Platform's domain models. This allows the dashboard to consume Zenoti data through the same interfaces it uses for seed data.
+
+## Centers → Locations
+
+### `mapCenter()`
+
+Transform a single Zenoti center into an EIP `Location`.
+
+```typescript
+export function mapCenter(c: ZenotiCenter): Location
+```
+
+<ParamField path="c" type="ZenotiCenter" required>
+  Zenoti center object from API
+</ParamField>
+
+<ResponseField name="return" type="Location">
+  EIP location object with fields:
+  - `id` — Center ID
+  - `name` — Display name (falls back to `name` if `display_name` is empty)
+  - `city` — City name
+  - `state` — State code or name
+  - `rooms` — Count of active rooms
+  - `providers` — Provider count
+</ResponseField>
+
+**Implementation** (mappers.ts:27-36):
+
+```typescript
+export function mapCenter(c: ZenotiCenter): Location {
+  return {
+    id: c.id,
+    name: c.display_name || c.name,
+    city: c.city,
+    state: c.state?.code ?? c.state?.name ?? '',
+    rooms: c.rooms?.filter((r) => r.is_active).length ?? 0,
+    providers: c.provider_count ?? 0,
+  }
+}
+```
+
+### `mapCenters()`
+
+Transform an array of centers, filtering out inactive ones.
+
+```typescript
+export function mapCenters(centers: ZenotiCenter[]): Location[]
+```
+
+<ParamField path="centers" type="ZenotiCenter[]" required>
+  Array of Zenoti centers
+</ParamField>
+
+<ResponseField name="return" type="Location[]">
+  Array of EIP locations (only active centers)
+</ResponseField>
+
+**Example**:
+
+```typescript
+import { listCenters, mapCenters } from '@/integrations/zenoti'
+
+const raw = await listCenters()
+const locations = mapCenters(raw)
+
+locations.forEach(loc => {
+  console.log(`${loc.name}: ${loc.rooms} rooms, ${loc.providers} providers`)
+})
+```
+
+---
+
+## Services
+
+### `mapService()`
+
+Transform a Zenoti service into an EIP `Service`.
+
+```typescript
+export function mapService(s: ZenotiService): Service
+```
+
+<ParamField path="s" type="ZenotiService" required>
+  Zenoti service object
+</ParamField>
+
+<ResponseField name="return" type="Service">
+  EIP service object with:
+  - `id` — Service ID
+  - `name` — Service name
+  - `price` — Sales price
+  - `duration` — Duration in minutes
+  - `category` — EIP category (`'Injectable' | 'Facial' | 'Laser' | 'Body'`)
+</ResponseField>
+
+**Category mapping** (mappers.ts:44-59):
+
+```typescript
+const CATEGORY_MAP: Record<string, Service['category']> = {
+  injectable: 'Injectable',
+  injectables: 'Injectable',
+  facial: 'Facial',
+  facials: 'Facial',
+  laser: 'Laser',
+  body: 'Body',
+  'body contouring': 'Body',
+}
+
+function inferServiceCategory(
+  zenotiCategory: string,
+): Service['category'] {
+  const key = zenotiCategory.toLowerCase().trim()
+  return CATEGORY_MAP[key] ?? 'Facial' // default fallback
+}
+```
+
+### `mapServices()`
+
+Transform an array of services, filtering out inactive ones.
+
+```typescript
+export function mapServices(services: ZenotiService[]): Service[]
+```
+
+<ParamField path="services" type="ZenotiService[]" required>
+  Array of Zenoti services
+</ParamField>
+
+<ResponseField name="return" type="Service[]">
+  Array of EIP services (only active)
+</ResponseField>
+
+**Example**:
+
+```typescript
+import { listServices, mapServices } from '@/integrations/zenoti'
+
+const raw = await listServices('center123')
+const services = mapServices(raw)
+
+// Group by category
+const byCategory = services.reduce((acc, s) => {
+  acc[s.category] = [...(acc[s.category] || []), s]
+  return acc
+}, {})
+
+console.log('Injectable services:', byCategory.Injectable.length)
+```
+
+---
+
+## Appointments
+
+### `mapAppointment()`
+
+Transform a Zenoti appointment into an EIP `Appointment`.
+
+```typescript
+export function mapAppointment(a: ZenotiAppointment): Appointment
+```
+
+<ParamField path="a" type="ZenotiAppointment" required>
+  Zenoti appointment object
+</ParamField>
+
+<ResponseField name="return" type="Appointment">
+  EIP appointment with:
+  - `id` — Appointment ID
+  - `clientName` — Full name (first + last)
+  - `clientId` — Guest ID
+  - `service` — Service name
+  - `provider` — Therapist full name
+  - `locationId` — Center ID
+  - `date` — ISO date (YYYY-MM-DD)
+  - `startTime` — HH:MM format
+  - `endTime` — HH:MM format
+  - `status` — EIP status (`'confirmed' | 'completed' | 'no_show' | 'cancelled'`)
+  - `bookedBy` — Booking source (`'staff' | 'online' | 'ai'`)
+  - `noShowRisk` — Always `'low'` (EIP AI calculates separately)
+  - `room` — Room number (always 1 for now)
+  - `revenue` — Service price
+</ResponseField>
+
+### Status Mapping
+
+Zenoti status codes → EIP status strings (mappers.ts:86-103):
+
+```typescript
+function mapAppointmentStatus(
+  status: number,
+): Appointment['status'] {
+  switch (status) {
+    case 0:  // Booked
+    case 1:  // Confirmed
+    case 2:  // Checked-in
+      return 'confirmed'
+    case 4:  // Completed
+      return 'completed'
+    case 10: // No-show
+      return 'no_show'
+    case -1: // Cancelled
+      return 'cancelled'
+    default:
+      return 'confirmed'
+  }
+}
+```
+
+| Zenoti Status | Code | EIP Status |
+|---|---|---|
+| New / Booked | 0 | `confirmed` |
+| Confirmed | 1 | `confirmed` |
+| Checked-in | 2 | `confirmed` |
+| Completed | 4 | `completed` |
+| No-show | 10 | `no_show` |
+| Cancelled | -1 | `cancelled` |
+
+### Booking Source Mapping
+
+Zenoti booking source → EIP `bookedBy` (mappers.ts:110-123):
+
+```typescript
+function mapBookingSource(source: number): Appointment['bookedBy'] {
+  switch (source) {
+    case 0:  // Walk-in
+    case 1:  // Phone
+      return 'staff'
+    case 2:  // Online
+    case 3:  // App
+      return 'online'
+    case 4:  // API
+      return 'ai'
+    default:
+      return 'staff'
+  }
+}
+```
+
+| Zenoti Source | Code | EIP `bookedBy` |
+|---|---|---|
+| Walk-in | 0 | `staff` |
+| Phone | 1 | `staff` |
+| Online | 2 | `online` |
+| App | 3 | `online` |
+| API | 4 | `ai` |
+
+### `mapAppointments()`
+
+Transform an array of appointments.
+
+```typescript
+export function mapAppointments(
+  appointments: ZenotiAppointment[],
+): Appointment[]
+```
+
+**Example**:
+
+```typescript
+import { listAppointments, mapAppointments } from '@/integrations/zenoti'
+
+const raw = await listAppointments({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+})
+
+const appointments = mapAppointments(raw)
+
+// Calculate metrics
+const completed = appointments.filter(a => a.status === 'completed')
+const noShows = appointments.filter(a => a.status === 'no_show')
+const noShowRate = (noShows.length / appointments.length) * 100
+
+console.log(`No-show rate: ${noShowRate.toFixed(1)}%`)
+```
+
+---
+
+## Guests → Clients
+
+### `mapGuest()`
+
+Transform a Zenoti guest into an EIP `Client`.
+
+```typescript
+export function mapGuest(g: ZenotiGuest): Client
+```
+
+<ParamField path="g" type="ZenotiGuest" required>
+  Zenoti guest object
+</ParamField>
+
+<ResponseField name="return" type="Client">
+  EIP client with:
+  - `id` — Guest ID
+  - `name` — Full name
+  - `email` — Email address
+  - `phone` — Mobile, home, or work phone (in that order)
+  - `preferredLocation` — Home center ID
+  - `totalVisits` — Visit count
+  - `clv` — Customer lifetime value
+  - `lastVisit` — ISO date of last appointment
+  - `joinDate` — Account creation date
+  - `favoriteService` — Preferred service ID
+  - `noShowCount` — No-show count
+</ResponseField>
+
+**Implementation** (mappers.ts:155-170):
+
+```typescript
+export function mapGuest(g: ZenotiGuest): Client {
+  const p = g.personal_info
+  return {
+    id: g.id,
+    name: `${p.first_name} ${p.last_name}`.trim(),
+    email: p.email ?? '',
+    phone: p.mobile_phone?.number ?? p.home_phone?.number ?? '',
+    preferredLocation: g.home_center_id ?? g.center_id,
+    totalVisits: g.total_visits ?? 0,
+    clv: g.clv ?? 0,
+    lastVisit: g.last_visit_date ?? g.creation_date,
+    joinDate: g.creation_date,
+    favoriteService: g.preferred_service_id ?? '',
+    noShowCount: g.no_show_count ?? 0,
+  }
+}
+```
+
+### `mapGuests()`
+
+Transform an array of guests, filtering out inactive ones.
+
+```typescript
+export function mapGuests(guests: ZenotiGuest[]): Client[]
+```
+
+---
+
+## Sales / Collections → DailyMetrics
+
+### `mapDailySales()`
+
+Convert a Zenoti daily sales breakdown row into EIP `DailyMetrics`.
+
+```typescript
+export function mapDailySales(
+  d: ZenotiDailySales,
+  centerId: string,
+): DailyMetrics
+```
+
+<ParamField path="d" type="ZenotiDailySales" required>
+  Daily sales data from Zenoti sales report
+</ParamField>
+
+<ParamField path="centerId" type="string" required>
+  Center ID (not included in ZenotiDailySales)
+</ParamField>
+
+<ResponseField name="return" type="DailyMetrics">
+  EIP daily metrics object. Fields that Zenoti doesn't provide natively (like `responseTimeAvg`, `callsAnswered`, `aiResolved`) are set to 0 — EIP's AI modules fill these in from the command center channel.
+</ResponseField>
+
+**Implementation** (mappers.ts:188-209):
+
+```typescript
+export function mapDailySales(
+  d: ZenotiDailySales,
+  centerId: string,
+): DailyMetrics {
+  const bookings = d.bookings ?? 0
+  const noShows = d.no_shows ?? 0
+  return {
+    date: d.date,
+    locationId: centerId,
+    revenue: d.revenue ?? 0,
+    bookings,
+    noShows,
+    noShowRate: bookings > 0 ? (noShows / bookings) * 100 : 0,
+    responseTimeAvg: 0, // Populated by EIP command center
+    utilizationRate: (d.utilization_rate ?? 0) * 100,
+    newClients: d.new_clients ?? 0,
+    rebookingRate: 0, // Calculated separately by EIP
+    callsAnswered: 0,
+    callsMissed: 0,
+    aiResolved: 0,
+    escalated: 0,
+    revenueRecovered: 0,
+  }
+}
+```
+
+### `mapSalesReport()`
+
+Map a full Zenoti sales report into an array of `DailyMetrics`.
+
+```typescript
+export function mapSalesReport(report: ZenotiSalesReport): DailyMetrics[]
+```
+
+<ParamField path="report" type="ZenotiSalesReport" required>
+  Sales report from `getSalesReport()`
+</ParamField>
+
+<ResponseField name="return" type="DailyMetrics[]">
+  Array of daily metrics (one per day in the report's `daily_breakdown`)
+</ResponseField>
+
+**Example**:
+
+```typescript
+import { getSalesReport, mapSalesReport } from '@/integrations/zenoti'
+
+const report = await getSalesReport({
+  centerId: 'abc123',
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+})
+
+const dailyMetrics = mapSalesReport(report)
+
+// Calculate average metrics
+const avgRevenue = dailyMetrics.reduce((sum, d) => sum + d.revenue, 0) / dailyMetrics.length
+const avgUtilization = dailyMetrics.reduce((sum, d) => sum + d.utilizationRate, 0) / dailyMetrics.length
+
+console.log(`Avg daily revenue: $${avgRevenue.toFixed(2)}`)
+console.log(`Avg utilization: ${avgUtilization.toFixed(1)}%`)
+```
+
+### `mapCollection()`
+
+Map a Zenoti collection (daily revenue summary) into `DailyMetrics`. **Lightweight alternative** when the v2 sales report endpoint is unavailable.
+
+```typescript
+export function mapCollection(c: ZenotiCollection): DailyMetrics
+```
+
+<ParamField path="c" type="ZenotiCollection" required>
+  Collection object from `listCollections()`
+</ParamField>
+
+<ResponseField name="return" type="DailyMetrics">
+  Daily metrics with revenue and transaction count. Most fields are set to 0.
+</ResponseField>
+
+### `mapCollections()`
+
+Transform an array of collections.
+
+```typescript
+export function mapCollections(
+  collections: ZenotiCollection[],
+): DailyMetrics[]
+```
+
+---
+
+## Field Mapping Tables
+
+### Center → Location
+
+| Zenoti Field | EIP Field | Transformation |
+|---|---|---|
+| `id` | `id` | Direct |
+| `display_name` or `name` | `name` | Fallback to `name` |
+| `city` | `city` | Direct |
+| `state.code` or `state.name` | `state` | Prefer code |
+| `rooms` (filtered `is_active`) | `rooms` | Count active |
+| `provider_count` | `providers` | Direct |
+
+### Service → Service
+
+| Zenoti Field | EIP Field | Transformation |
+|---|---|---|
+| `id` | `id` | Direct |
+| `name` | `name` | Direct |
+| `price.sales` | `price` | Direct |
+| `duration` | `duration` | Direct |
+| `category.name` | `category` | Mapped via `CATEGORY_MAP` |
+
+### Appointment → Appointment
+
+| Zenoti Field | EIP Field | Transformation |
+|---|---|---|
+| `appointment_id` | `id` | Direct |
+| `guest.first_name + last_name` | `clientName` | Concatenated |
+| `guest.id` | `clientId` | Direct |
+| `service.name` | `service` | Direct |
+| `therapist.first_name + last_name` | `provider` | Concatenated |
+| `center_id` | `locationId` | Direct |
+| `start_time` | `date`, `startTime` | Parsed to ISO date + HH:MM |
+| `end_time` | `endTime` | Parsed to HH:MM |
+| `status` | `status` | Mapped via `mapAppointmentStatus()` |
+| `booking_source` | `bookedBy` | Mapped via `mapBookingSource()` |
+| `price.sales` | `revenue` | Direct |
+
+### Guest → Client
+
+| Zenoti Field | EIP Field | Transformation |
+|---|---|---|
+| `id` | `id` | Direct |
+| `personal_info.first_name + last_name` | `name` | Concatenated |
+| `personal_info.email` | `email` | Direct |
+| `personal_info.mobile_phone.number` | `phone` | Fallback to home/work |
+| `home_center_id` | `preferredLocation` | Direct |
+| `total_visits` | `totalVisits` | Direct |
+| `clv` | `clv` | Direct |
+| `last_visit_date` | `lastVisit` | Direct |
+| `creation_date` | `joinDate` | Direct |
+| `preferred_service_id` | `favoriteService` | Direct |
+| `no_show_count` | `noShowCount` | Direct |
+
+### DailySales → DailyMetrics
+
+| Zenoti Field | EIP Field | Transformation |
+|---|---|---|
+| `date` | `date` | Direct |
+| — | `locationId` | From parameter |
+| `revenue` | `revenue` | Direct |
+| `bookings` | `bookings` | Direct |
+| `no_shows` | `noShows` | Direct |
+| — | `noShowRate` | Calculated: `(noShows / bookings) * 100` |
+| `utilization_rate` | `utilizationRate` | Converted to percentage |
+| `new_clients` | `newClients` | Direct |
+| — | All call/AI metrics | Set to 0 (EIP fills these) |
+
+---
+
+## Usage Patterns
+
+### Fetch and Map
+
+```typescript
+import { listAppointments, mapAppointments } from '@/integrations/zenoti'
+
+const raw = await listAppointments({ centerId, startDate, endDate })
+const appointments = mapAppointments(raw)
+```
+
+### Use with React Query Hooks
+
+The [React Query hooks](/api/hooks) automatically apply mappers:
+
+```typescript
+import { useAppointments } from '@/integrations/zenoti'
+
+// Returns EIP Appointment[], not ZenotiAppointment[]
+const { data } = useAppointments({ centerId: 'abc123' })
+```
+
+### Extend Mappers
+
+You can compose custom mappers for specific use cases:
+
+```typescript
+import { mapAppointment } from '@/integrations/zenoti'
+import type { ZenotiAppointment, Appointment } from '@/integrations/zenoti'
+
+function mapAppointmentWithCustomFields(
+  a: ZenotiAppointment
+): Appointment & { customField: string } {
+  return {
+    ...mapAppointment(a),
+    customField: a.custom_data?.myField ?? 'default',
+  }
+}
+```
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="code" href="/api/endpoints">
+    Fetch raw Zenoti data
+  </Card>
+  <Card title="React Hooks" icon="react" href="/api/hooks">
+    Pre-mapped queries with caching
+  </Card>
+  <Card title="TypeScript Types" icon="file-code" href="/api/types">
+    Full type definitions
+  </Card>
+</CardGroup>

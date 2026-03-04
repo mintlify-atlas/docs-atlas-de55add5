@@ -1,0 +1,510 @@
+---
+title: Smart Scheduling Engine
+description: AI-powered appointment optimization, utilization tracking, and no-show prevention
+icon: calendar-check
+---
+
+The Smart Scheduling Engine analyzes appointment patterns, predicts no-shows, optimizes room utilization, and automatically fills cancellations through intelligent waitlist management.
+
+## Overview
+
+Etienne's scheduling intelligence works behind the scenes to maximize revenue per provider hour while improving the client experience.
+
+<CardGroup cols={2}>
+  <Card title="Utilization Boost" icon="chart-line">
+    Average 18.5% increase in room utilization after AI implementation
+  </Card>
+  <Card title="No-Show Reduction" icon="shield-check">
+    57% reduction in no-show rates through predictive intervention
+  </Card>
+</CardGroup>
+
+## Key Metrics
+
+### Utilization Rate
+
+**Definition:**
+```
+(Booked appointment hours / Total available provider hours) × 100
+```
+
+**Example calculation:**
+- 3 providers × 8 hours/day × 5 days = 120 total hours
+- 98 hours of booked appointments = 82% utilization
+
+**Industry benchmarks:**
+- Below 70%: Underutilized (revenue opportunity)
+- 70-85%: Healthy range
+- Above 85%: Near capacity (consider adding providers/rooms)
+
+**What the metric shows you:**
+- Current: Average utilization over last 30 days
+- Trend: % change vs. previous 30-day period
+- Location filter: Compare utilization across centers
+
+<Tip>
+Utilization rates naturally vary by day of week. Saturdays typically run 15-20% higher than Mondays. Use the trend line to spot patterns.
+</Tip>
+
+### No-Show Rate
+
+**Definition:**
+```
+(Appointments marked no-show / Total confirmed appointments) × 100
+```
+
+**Industry average:** 15-25% without intervention  
+**With Etienne AI:** 4-8% average
+
+**Revenue impact:**
+A spa with 500 appointments/month at $400 average:
+- 20% no-show rate = 100 no-shows = $40,000 lost revenue/month
+- 5% no-show rate = 25 no-shows = $10,000 lost revenue/month
+- **Savings: $30,000/month**
+
+**Trend to watch:**
+Negative trend percentage (green, down arrow) indicates improvement. You want this number going down.
+
+### AI-Booked Appointments
+
+Count of appointments booked entirely by AI without staff involvement.
+
+**Breakdown by source:**
+- After-hours calls and texts
+- Web chat bookings
+- Social media DM bookings
+- Automated rebooking campaigns
+- Waitlist auto-fill
+
+**Typical range:** 35-45% of total bookings
+
+**Why it matters:**
+Each AI booking frees staff time for higher-value activities like consultations and relationship building.
+
+### Revenue per Appointment
+
+**Calculation:**
+```
+Total appointment revenue / Number of completed appointments
+```
+
+**Factors that increase this metric:**
+- Service mix (higher-value treatments)
+- Effective upselling (add-ons)
+- Package sales
+- Longer appointment durations
+
+**How AI helps:**
+- Suggests relevant add-ons during booking
+- Identifies upsell opportunities in conversation
+- Books package-deal combinations
+
+**Example:**
+Without AI: $385 average  
+With AI: $420 average (+8.2%)  
+On 500 monthly appointments: +$17,500/month revenue
+
+## No-Show Prediction & Prevention
+
+The No-Show Predictor AI agent analyzes 15+ factors to calculate risk scores for every confirmed appointment.
+
+### Risk Factors Analyzed
+
+<Tabs>
+  <Tab title="Client History">
+    - Previous no-show rate for this client
+    - Days since last visit (longer gap = higher risk)
+    - Lifetime visit count (new clients higher risk)
+    - Payment method on file (card vs. invoice)
+    - Average days between booking and appointment
+  </Tab>
+  
+  <Tab title="Appointment Characteristics">
+    - Lead time (booked far in advance = higher risk)
+    - Day of week (Mondays have higher no-show rates)
+    - Time of day (early morning/late evening higher risk)
+    - Service type (consultations higher risk than repeat treatments)
+    - Appointment value (very high or very low = higher risk)
+  </Tab>
+  
+  <Tab title="Engagement Signals">
+    - Responded to confirmation message (yes/no)
+    - Opened reminder emails
+    - Clicked confirmation links
+    - Social media engagement with your brand
+    - Response time to booking confirmation
+  </Tab>
+</Tabs>
+
+### Risk Levels
+
+<CardGroup cols={3}>
+  <Card title="Low Risk" icon="circle-check" color="#00d4aa">
+    0-30% probability
+    
+    No intervention needed beyond standard confirmation
+  </Card>
+  
+  <Card title="Medium Risk" icon="circle-exclamation" color="#ff9500">
+    31-65% probability
+    
+    Send additional reminder 2 hours before appointment
+  </Card>
+  
+  <Card title="High Risk" icon="circle-xmark" color="#ff3b30">
+    66-100% probability
+    
+    Multiple touchpoints:
+    - 24-hour reminder
+    - 2-hour reminder  
+    - Personal call if no confirmation
+  </Card>
+</CardGroup>
+
+### Prevention Actions
+
+When high-risk appointments are detected:
+
+**Automated interventions:**
+1. **24-hour reminder** sent via client's preferred channel
+2. **2-hour warning** with one-click confirm/cancel
+3. **If no response:** Waitlist notified of potential opening
+4. **30 minutes before:** Final text reminder
+
+**Example prevention flow:**
+
+```
+Day before, 10 AM:
+[AI] Hi Emma, friendly reminder — your Hydrafacial is tomorrow 
+     at 9:30 AM at Williamsburg. Reply YES to confirm or CANCEL 
+     to reschedule.
+     
+[No response after 12 hours]
+
+Appointment day, 7:30 AM:
+[AI] Your Hydrafacial starts in 2 hours at Williamsburg. 
+     Still coming? Reply YES or CANCEL.
+     
+[Client - 7:45 AM] Yes running a little late though, maybe 10 min
+
+[AI] No problem! We will have everything ready. See you soon!
+
+✅ No-show prevented
+```
+
+**Success rate:** 73% of high-risk appointments are confirmed through this intervention sequence.
+
+## No-Show Rate Trend Chart
+
+<Frame>
+  <img src="/images/noshow-trend.png" alt="30-day no-show rate trend" />
+</Frame>
+
+Line chart showing daily no-show rate over 30 days.
+
+**What to look for:**
+- **Downward trend:** AI interventions working
+- **Spikes:** Investigate cause (weather, specific provider, service type)
+- **Day-of-week patterns:** Mondays and Fridays typically higher
+
+**Typical progression after AI implementation:**
+- Week 1-2: 12-15% (baseline)
+- Week 3-4: 8-10% (AI learning)
+- Month 2+: 4-6% (steady state)
+
+## Utilization Rate Trend
+
+<Frame>
+  <img src="/images/utilization-trend.png" alt="30-day utilization trend" />
+</Frame>
+
+Line chart showing provider room utilization over time.
+
+**What drives utilization improvements:**
+- Fewer no-shows (slots get used as booked)
+- Waitlist auto-fill (cancellations filled immediately)
+- Optimized scheduling (AI books slots that would stay empty)
+- After-hours bookings (inventory that was previously unavailable)
+
+**Example:**
+SoHo location with 6 rooms:
+- Before AI: 74% average utilization
+- After 3 months: 86% utilization
+- Additional revenue: 12% × $85K monthly capacity = +$10,200/month
+
+## High No-Show Risk Appointments
+
+Real-time list of upcoming appointments flagged as high-risk.
+
+**Display format:**
+```
+⚠️ Sarah Chen
+Hydrafacial • Mar 15 at 10:00 AM
+[Send Reminder] button
+```
+
+**Information shown:**
+- Client name
+- Service and provider
+- Date and time  
+- Risk level (color-coded)
+- Action button
+
+**Staff actions:**
+- **Send Reminder:** Triggers immediate SMS reminder
+- **Call Client:** Opens dialer with client number
+- **View History:** See client's past appointment attendance
+
+<Warning>
+If the high-risk list consistently shows >20 appointments, consider adjusting your booking policies (e.g., require credit card for first-time clients).
+</Warning>
+
+## Waitlist Management
+
+Intelligent waitlist automatically fills cancellations and no-shows.
+
+### How It Works
+
+**Client adds themselves to waitlist:**
+- Through website
+- Via SMS/chat conversation
+- Staff can add manually
+
+**When a slot opens:**
+1. AI identifies opening (cancellation, no-show, new availability)
+2. Matches waitlist clients by:
+   - Requested service
+   - Preferred provider (if specified)
+   - Location preference
+   - Available dates/times
+3. Sends notification to first match:
+   ```
+   [AI] Hi Nicole! A Botox slot just opened up tomorrow at 11 AM 
+        at White Plains. You are first on the waitlist. Want it?
+   ```
+4. If accepted: Books appointment automatically
+5. If declined or no response in 10 min: Offers to next person
+
+**Conversion rate:** 68% of waitlist notifications convert to bookings
+
+**Revenue recovery:**
+Typical med spa with 30 cancellations/month:
+- 30 slots × 68% fill rate = 20 appointments saved
+- 20 × $400 average = $8,000 recovered revenue/month
+
+### Waitlist Priorities
+
+1. **VIP clients** (highest spend, longest tenure)
+2. **Long waitlist time** (first-come, first-served among same tier)
+3. **High-value services** (Body Contouring prioritized over Botox)
+4. **Perfect match** (exact service, provider, and time requested)
+
+## Schedule Optimization
+
+The Schedule Analyst AI continuously looks for optimization opportunities:
+
+### Slot Consolidation
+
+**Problem:** Two 30-minute Botox appointments with a 30-minute gap between them  
+**Solution:** AI suggests moving one appointment to fill the gap  
+**Result:** Opens a new 60-minute slot for higher-value service (Hydrafacial, Filler)
+
+**Revenue impact example:**
+- Before: 2 × Botox ($450 each) = $900
+- After: 2 × Botox + 1 × Hydrafacial ($250) = $1,150  
+- Gain: +$250 per optimization
+
+### Provider Balancing
+
+**Problem:** Provider A at 92% utilization, Provider B at 68%  
+**Solution:** AI preferentially books new appointments with Provider B  
+**Result:** Balanced workload, better client experience (shorter waits)
+
+### Service Mix Optimization
+
+**Problem:** All high-value slots filled with low-value services  
+**Solution:** AI reserves prime times (Sat 10 AM-2 PM) for services >$500  
+**Result:** Revenue per hour increases
+
+**Example rule:**
+```
+Saturday 10 AM - 2 PM slots:
+- Priority 1: Body Contouring ($1,200)
+- Priority 2: Dermal Filler ($850)
+- Priority 3: Botox ($450)
+- Priority 4: Other services
+```
+
+<Info>
+Optimization suggestions appear in the dashboard AI Opportunities panel. Staff can accept or decline each suggestion.
+</Info>
+
+## Rebooking Automation
+
+AI tracks treatment cycles and proactively reaches out for rebooking.
+
+### Treatment Schedules
+
+| Service | Recommended Interval |
+|---------|---------------------|
+| Botox | 3-4 months |
+| Dermal Filler | 6-9 months |
+| Hydrafacial | 4-6 weeks |
+| Laser Hair Removal | 4-6 weeks |
+| Chemical Peel | 4-8 weeks |
+
+### Automated Outreach
+
+**Example: Botox rebooking**
+
+```
+Last visit: December 15
+Today: March 10 (85 days later)
+Ideal rebook window: 90-120 days
+
+[AI - Day 85] Hi Angela! It has been almost 3 months since your 
+              last Botox session. Ready for the next one?
+              
+[Client] Yes! Friday works best.
+
+[AI] Friday at 1 PM at Williamsburg. See you then!
+```
+
+**Rebooking metrics:**
+- **Outreach rate:** % of past clients contacted at right time
+- **Response rate:** % who reply to rebooking message  
+- **Conversion rate:** % who actually book
+
+**Typical performance:**
+- 78% response rate
+- 64% conversion rate
+- 15-25% revenue attributed to automated rebooking
+
+## AI Scheduling Agents
+
+Three specialized agents power the scheduling engine:
+
+### Schedule Analyst
+**Status:** ● Online  
+**Tasks Handled:** 1,893
+
+**Responsibilities:**
+- Analyzes utilization patterns
+- Identifies optimization opportunities  
+- Manages waitlist matching
+- Coordinates multi-appointment bookings
+
+### No-Show Predictor
+**Status:** ● Online  
+**Tasks Handled:** 647
+
+**Responsibilities:**
+- Calculates risk scores for all appointments
+- Triggers preventive reminders
+- Tracks intervention success rates
+- Updates prediction model based on outcomes
+
+### Demand Forecaster
+**Status:** ◐ Idle  
+**Tasks Handled:** 89
+
+**Responsibilities:**
+- Predicts demand by day/time/service
+- Recommends optimal staffing levels
+- Identifies under/over-capacity periods
+- Suggests pricing adjustments for demand shaping
+
+<Note>
+Demand Forecaster runs weekly analyses rather than real-time processing, which is why it often shows "Idle" status.
+</Note>
+
+## Staff Scheduling View
+
+### Today's Timeline
+
+Chronological view of your appointments for the current day:
+
+```
+09:00  Sarah Johnson          Botox · Dr. Chen           $450
+       ⚠️ High Risk
+       
+10:30  Maria Lopez            Hydrafacial · PA Johnson   $250
+
+13:00  [Open Slot]
+
+14:00  Jennifer Kim           Dermal Filler · Dr. Chen   $850
+
+16:00  Amanda White           Laser Hair · NP Williams   $350
+       Running 10min late (confirmed)
+```
+
+**Visual indicators:**
+- ⚠️ High no-show risk
+- 🔵 Client confirmed  
+- 🟡 No confirmation yet
+- 🟢 Checked in
+- ⏰ Running late (with estimate)
+
+### Quick Actions
+
+- **Send Reminder:** One-click SMS reminder
+- **Call Client:** Click-to-dial
+- **Reschedule:** Drag-and-drop to new slot
+- **Add Notes:** Attach notes visible to provider
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Review high-risk appointments every morning">
+    Start your day by:
+    1. Checking the High No-Show Risk list
+    2. Sending personal reminders to top 3-5 risks
+    3. Notifying waitlist for any likely no-shows
+    
+    This 10-minute routine typically saves 2-3 appointments per day.
+  </Accordion>
+  
+  <Accordion title="Accept waitlist suggestions quickly">
+    When AI suggests filling a slot from the waitlist:
+    - Client is waiting for your confirmation
+    - They've already said yes to the notification
+    - Delay >5 minutes risks losing the booking
+    
+    Set up mobile notifications for waitlist matches.
+  </Accordion>
+  
+  <Accordion title="Monitor utilization by provider">
+    Use location comparison to identify:
+    - Providers consistently under 70% (training opportunity)
+    - Providers over 90% (burnout risk, need support)
+    - Variations in no-show rates by provider
+    
+    Utilization imbalances often indicate booking policy issues.
+  </Accordion>
+  
+  <Accordion title="Trust the rebooking automation">
+    Common concern: "We don't want to be pushy"
+    
+    Reality:
+    - 85% of clients appreciate the reminder
+    - Messages are friendly, not salesy
+    - Clients can opt out anytime
+    - Rebooking revenue typically increases 20-30%
+    
+    Let the AI handle the outreach timing and messaging.
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Command Center" icon="messages" href="/features/command-center">
+    See how bookings originated from conversations
+  </Card>
+  <Card title="Dashboard" icon="chart-line" href="/features/dashboard">
+    High-level scheduling and utilization metrics
+  </Card>
+  <Card title="Intelligence Hub" icon="brain" href="/features/intelligence">
+    Ask AI about scheduling patterns and opportunities
+  </Card>
+</CardGroup>

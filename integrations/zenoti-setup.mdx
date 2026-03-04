@@ -1,0 +1,284 @@
+---
+title: "Zenoti Setup"
+description: "Step-by-step guide to configure the Zenoti integration for the Etienne Intelligence Platform"
+---
+
+This guide walks you through setting up the Zenoti API integration, from creating backend app credentials in Zenoti Admin to configuring environment variables in your EIP instance.
+
+## Prerequisites
+
+- Zenoti account with Admin access
+- Access to **Zenoti Admin > Setup > Apps**
+- EIP instance with file system access to configure `.env.local`
+
+## Setup Process
+
+<Steps>
+  <Step title="Create a Backend App in Zenoti">
+    Navigate to **Zenoti Admin > Setup > Apps** and create a new backend application:
+    
+    1. Click **Create New App**
+    2. Select **Backend App** as the app type
+    3. Enter application details:
+       - **Name**: "Etienne Intelligence Platform"
+       - **Description**: "Business intelligence dashboard for wellness analytics"
+    4. Click **Generate Credentials**
+    
+    Zenoti will generate three values you'll need:
+    - **Application ID** (`applicationId`)
+    - **Secret Key** (`secretKey`)
+    - **API Key** (optional, long-lived ~1 year)
+    
+    <Warning>
+      Store these credentials securely. The Secret Key is only shown once and cannot be recovered.
+    </Warning>
+  </Step>
+  
+  <Step title="Identify Your Data Center">
+    Determine your Zenoti data center region to set the correct base URL:
+    
+    - **US**: `https://api.zenoti.com`
+    - **EU**: `https://api.zenoti.eu`
+    - **AU**: `https://api.zenoti.com.au`
+    
+    Check your Zenoti login URL or contact Zenoti support if unsure.
+  </Step>
+  
+  <Step title="Configure Environment Variables">
+    Copy the `.env.example` file to `.env.local` in your EIP project root:
+    
+    ```bash
+    cp .env.example .env.local
+    ```
+    
+    Edit `.env.local` with your Zenoti credentials:
+    
+    ```bash
+    # ================================================================
+    # Zenoti API Integration — Environment Variables
+    # See: https://docs.zenoti.com/docs/create-the-backend-app-and-generate-a-new-api-key
+    # ================================================================
+    
+    # Base URL — differs per Zenoti data center
+    # US: https://api.zenoti.com  |  EU: https://api.zenoti.eu
+    VITE_ZENOTI_BASE_URL=https://api.zenoti.com
+    
+    # API Key (recommended for server-to-server; valid ~1 year)
+    # Found in Zenoti Admin > Setup > Apps > your app > API Key
+    VITE_ZENOTI_API_KEY=your-api-key-here
+    
+    # Application ID & Secret Key (required for bearer-token auth)
+    # Generated when you create a backend app in Zenoti Admin > Setup > Apps
+    VITE_ZENOTI_APP_ID=your-app-id-here
+    VITE_ZENOTI_SECRET_KEY=your-secret-key-here
+    
+    # Account / organization name in Zenoti
+    VITE_ZENOTI_ACCOUNT_NAME=your-account-name
+    ```
+    
+    <Warning>
+      Never commit `.env.local` to version control. It's already in `.gitignore`.
+    </Warning>
+  </Step>
+  
+  <Step title="Verify Configuration">
+    The integration client reads these environment variables automatically:
+    
+    ```typescript
+    // From: src/integrations/zenoti/client.ts:27
+    export function getZenotiConfig(): ZenotiConfig {
+      return {
+        baseUrl:
+          import.meta.env.VITE_ZENOTI_BASE_URL ?? 'https://api.zenoti.com',
+        apiKey: import.meta.env.VITE_ZENOTI_API_KEY ?? undefined,
+        applicationId: import.meta.env.VITE_ZENOTI_APP_ID ?? undefined,
+        secretKey: import.meta.env.VITE_ZENOTI_SECRET_KEY ?? undefined,
+        accountName: import.meta.env.VITE_ZENOTI_ACCOUNT_NAME ?? undefined,
+      }
+    }
+    ```
+    
+    Restart your development server to load the new environment variables:
+    
+    ```bash
+    npm run dev
+    ```
+  </Step>
+  
+  <Step title="Test the Connection">
+    Use the built-in connection test hook to verify credentials:
+    
+    ```typescript
+    // From: src/integrations/zenoti/hooks.ts:186
+    import { useZenotiConnectionTest } from '@/integrations/zenoti'
+    
+    function SettingsPage() {
+      const { refetch, data, error, isLoading } = useZenotiConnectionTest()
+      
+      const handleTestConnection = async () => {
+        const result = await refetch()
+        
+        if (result.isSuccess) {
+          console.log(`Connected! Found ${result.data.centerCount} centers`)
+          console.log('Centers:', result.data.centerNames)
+        } else {
+          console.error('Connection failed:', result.error)
+        }
+      }
+      
+      return (
+        <button onClick={handleTestConnection} disabled={isLoading}>
+          {isLoading ? 'Testing...' : 'Test Zenoti Connection'}
+        </button>
+      )
+    }
+    ```
+    
+    A successful response will return:
+    
+    ```json
+    {
+      "success": true,
+      "centerCount": 3,
+      "centerNames": [
+        "Downtown Spa",
+        "Westside Wellness",
+        "Eastside Salon"
+      ]
+    }
+    ```
+  </Step>
+  
+  <Step title="Configure Permissions (Optional)">
+    In Zenoti Admin, configure API permissions for your backend app:
+    
+    **Recommended permissions for EIP**:
+    - Centers: Read
+    - Services: Read
+    - Appointments: Read
+    - Guests: Read
+    - Invoices: Read
+    - Employees: Read
+    - Reports: Read
+    
+    <Info>
+      EIP only requires read-only access. Never grant write permissions unless specifically needed.
+    </Info>
+  </Step>
+</Steps>
+
+## Authentication Methods
+
+The integration supports two authentication strategies:
+
+### API Key (Recommended)
+
+- **Lifetime**: ~1 year
+- **Use case**: Server-to-server integration (EIP)
+- **Header format**: `Authorization: <API_KEY>`
+- **Configuration**: Set `VITE_ZENOTI_API_KEY` in `.env.local`
+
+```typescript
+// From: src/integrations/zenoti/client.ts:126
+const authHeader: Record<string, string> = {}
+if (config.apiKey) {
+  authHeader['Authorization'] = config.apiKey
+} else {
+  const token = await getAccessToken(config)
+  authHeader['Authorization'] = `bearer ${token}`
+}
+```
+
+### Bearer Token (OAuth-style)
+
+- **Lifetime**: 24 hours (auto-refreshed at 90% expiry)
+- **Use case**: User-scoped access with employee credentials
+- **Header format**: `Authorization: bearer <ACCESS_TOKEN>`
+- **Configuration**: Set `VITE_ZENOTI_APP_ID`, `VITE_ZENOTI_SECRET_KEY`, `VITE_ZENOTI_ACCOUNT_NAME`
+
+```typescript
+// From: src/integrations/zenoti/client.ts:53
+export async function getAccessToken(config: ZenotiConfig): Promise<string> {
+  if (isTokenValid()) return cachedToken!
+  
+  if (!config.applicationId || !config.secretKey || !config.accountName) {
+    throw new ZenotiAuthError(
+      'Missing applicationId, secretKey, or accountName — cannot generate token.'
+    )
+  }
+  
+  const body: ZenotiTokenRequest = {
+    account_name: config.accountName,
+    application_id: config.applicationId,
+    secret_key: config.secretKey,
+  }
+  
+  const res = await fetch(`${config.baseUrl}/v1/tokens`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  
+  if (!res.ok) {
+    throw new ZenotiAuthError(`Token request failed (${res.status})`)
+  }
+  
+  const data = await res.json() as ZenotiTokenResponse
+  cachedToken = data.access_token
+  tokenExpiresAt = Date.now() + (data.expires_in ?? 86_400) * 900 // 90% of 24h
+  
+  return cachedToken
+}
+```
+
+## Troubleshooting
+
+### "Token request failed (401)"
+
+**Cause**: Invalid Application ID, Secret Key, or Account Name.
+
+**Solution**:
+1. Verify credentials in Zenoti Admin > Setup > Apps
+2. Ensure `VITE_ZENOTI_ACCOUNT_NAME` matches your Zenoti organization name exactly
+3. Regenerate credentials if necessary
+
+### "Request failed (403)"
+
+**Cause**: Insufficient permissions for the backend app.
+
+**Solution**:
+1. Go to Zenoti Admin > Setup > Apps > [Your App]
+2. Verify API permissions include Centers (Read)
+3. Wait 2-5 minutes for permission changes to propagate
+
+### "Base URL not reachable"
+
+**Cause**: Wrong data center URL.
+
+**Solution**:
+1. Verify your data center region (US/EU/AU)
+2. Update `VITE_ZENOTI_BASE_URL` to match:
+   - US: `https://api.zenoti.com`
+   - EU: `https://api.zenoti.eu`
+   - AU: `https://api.zenoti.com.au`
+
+### "Rate limit exceeded (429)"
+
+**Cause**: Too many requests in a short time window.
+
+**Solution**: The client automatically retries with exponential backoff. If you see this error frequently:
+1. Increase React Query `staleTime` to reduce fetch frequency
+2. Implement request batching for bulk operations
+3. Contact Zenoti to increase rate limits if needed
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/integrations/authentication">
+    Deep dive into API keys, bearer tokens, and security best practices
+  </Card>
+  
+  <Card title="Integration Overview" icon="globe" href="/integrations/overview">
+    Learn about available endpoints and data mapping
+  </Card>
+</CardGroup>

@@ -1,0 +1,241 @@
+---
+title: "Integration Overview"
+description: "Connect the Etienne Intelligence Platform with Zenoti to sync appointments, clients, revenue, and employee performance data"
+---
+
+The Etienne Intelligence Platform integrates with Zenoti's REST API to provide real-time business intelligence for wellness and spa businesses. The integration synchronizes data across centers, appointments, guests, invoices, and employee performance metrics.
+
+## Capabilities
+
+The Zenoti integration provides comprehensive read-only access to your business data:
+
+### Core Data Sync
+
+- **Centers (Locations)**: Retrieve all spa/salon locations with details including address, timezone, currency, and room configurations
+- **Services**: Access service catalogs with pricing, duration, categories, and online booking availability
+- **Appointments**: Sync appointment schedules with status tracking (booked, confirmed, checked-in, completed, no-show, cancelled)
+- **Guests (Clients)**: Import client profiles with contact information, loyalty points, visit history, and lifetime value metrics
+- **Invoices**: Pull detailed transaction data including items, payments, taxes, and tips
+- **Collections**: Daily revenue reports broken down by service, product, package, membership, and gift card sales
+
+### Analytics & Performance
+
+- **Sales Reports**: Aggregated revenue metrics with daily breakdowns for dashboard visualizations
+- **Employee Performance**: Track therapist metrics including appointments, revenue, utilization rate, and rebooking rate
+- **Multi-location Support**: Query data across all centers or filter by specific location
+
+### Integration Architecture
+
+The integration layer is built with TypeScript and follows a clean architecture pattern:
+
+```typescript
+// From: src/integrations/zenoti/index.ts
+export {
+  // HTTP client with auth, retries, and rate-limiting
+  zenotiRequest,
+  getAccessToken,
+  clearAccessToken,
+  ZenotiApiError,
+  ZenotiAuthError,
+  type ZenotiConfig,
+} from './client'
+
+// API endpoint methods
+export {
+  listCenters,
+  getCenter,
+  listServices,
+  getService,
+  searchGuests,
+  getGuest,
+  listAppointments,
+  getAppointment,
+  getInvoice,
+  listCollections,
+  listEmployees,
+  getEmployeePerformance,
+  getSalesReport,
+  listAppointmentsAllCenters,
+  getSalesReportsAllCenters,
+} from './endpoints'
+
+// Data mappers (Zenoti → EIP types)
+export {
+  mapCenter,
+  mapAppointment,
+  mapGuest,
+  mapSalesReport,
+  mapCollection,
+} from './mappers'
+
+// React Query hooks
+export {
+  useLocations,
+  useServices,
+  useAppointments,
+  useClients,
+  useDailyMetrics,
+  useZenotiConnectionTest,
+} from './hooks'
+```
+
+## Data Flow
+
+The integration uses React Query for efficient data fetching and caching:
+
+<Steps>
+  <Step title="Authentication">
+    Client authenticates using API Key (recommended) or Bearer Token (OAuth-style) via `/v1/tokens` endpoint
+  </Step>
+  
+  <Step title="Data Fetching">
+    React Query hooks fetch data from Zenoti API endpoints with automatic retry and rate-limiting
+  </Step>
+  
+  <Step title="Type Mapping">
+    Mapper functions transform Zenoti response types into EIP domain types for consistent UI rendering
+  </Step>
+  
+  <Step title="Caching Strategy">
+    - Centers: 30-minute cache (rarely change)
+    - Appointments/Metrics: 5-minute cache (frequent updates)
+    - Clients: 10-minute cache (moderate updates)
+  </Step>
+  
+  <Step title="Fallback Mode">
+    When Zenoti is disconnected, hooks return seed data for demo/testing purposes
+  </Step>
+</Steps>
+
+## API Request Example
+
+The core request function handles authentication, query parameters, and error handling:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:110
+import { zenotiRequest } from '@/integrations/zenoti'
+
+// Fetch appointments for a date range
+const appointments = await zenotiRequest<ZenotiAppointmentsResponse>(
+  '/v1/appointments',
+  {
+    params: {
+      center_id: 'center-123',
+      start_date: '2026-03-01',
+      end_date: '2026-03-04',
+      status: 4, // 4 = Completed
+      page: 1,
+      size: 200,
+    },
+  }
+)
+```
+
+## React Query Hooks
+
+Use pre-built hooks for seamless integration with the EIP dashboard:
+
+```typescript
+// From: src/integrations/zenoti/hooks.ts
+import { useAppointments, useDailyMetrics } from '@/integrations/zenoti'
+
+function Dashboard() {
+  // Fetch last 30 days of appointments for a center
+  const { data: appointments, isLoading } = useAppointments({
+    centerId: 'center-123',
+    daysBack: 30,
+  })
+
+  // Fetch sales metrics for the same period
+  const { data: metrics } = useDailyMetrics({
+    centerId: 'center-123',
+    daysBack: 30,
+  })
+
+  return <RevenueChart data={metrics} />
+}
+```
+
+## Error Handling
+
+The client includes custom error classes for graceful degradation:
+
+```typescript
+// From: src/integrations/zenoti/client.ts:184
+try {
+  const centers = await listCenters()
+} catch (error) {
+  if (error instanceof ZenotiAuthError) {
+    // Handle authentication failure
+    console.error('Invalid API credentials:', error.message)
+  } else if (error instanceof ZenotiApiError) {
+    // Handle API errors (rate limits, server errors, etc.)
+    console.error(`API error (${error.status}):`, error.message)
+  }
+}
+```
+
+## Rate Limiting & Retries
+
+The client automatically handles rate limits and transient errors:
+
+- **Retries**: Up to 3 attempts with exponential backoff (1s, 2s, 4s)
+- **Rate Limit Detection**: Automatically retries on HTTP 429 responses
+- **Retry-After Header**: Respects Zenoti's `Retry-After` header when present
+- **Transient Errors**: Retries 5xx server errors with backoff
+
+```typescript
+// From: src/integrations/zenoti/client.ts:141
+const MAX_RETRIES = 3
+const RETRY_DELAYS = [1000, 2000, 4000]
+
+for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  const res = await fetch(url.toString(), { method, headers, body })
+  
+  if (res.ok) return await res.json()
+  
+  const isRetryable = res.status === 429 || (res.status >= 500 && res.status < 600)
+  
+  if (isRetryable && attempt < MAX_RETRIES) {
+    const retryAfter = res.headers.get('Retry-After')
+    const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : RETRY_DELAYS[attempt]
+    await sleep(delay)
+    continue
+  }
+  
+  throw new ZenotiApiError(res.status, errorMessage)
+}
+```
+
+## Multi-location Queries
+
+Fetch data across all centers with built-in aggregation helpers:
+
+```typescript
+// From: src/integrations/zenoti/endpoints.ts:283
+import { listAppointmentsAllCenters, getSalesReportsAllCenters } from '@/integrations/zenoti'
+
+// Fetch appointments from all centers (2026-02-01 to 2026-03-04)
+const allAppointments = await listAppointmentsAllCenters(
+  '2026-02-01',
+  '2026-03-04'
+)
+
+// Fetch sales reports from all centers
+const allReports = await getSalesReportsAllCenters(
+  '2026-02-01',
+  '2026-03-04'
+)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Zenoti Setup" icon="plug" href="/integrations/zenoti-setup">
+    Configure your Zenoti integration with step-by-step instructions
+  </Card>
+  
+  <Card title="Authentication" icon="key" href="/integrations/authentication">
+    Learn about API keys, bearer tokens, and security best practices
+  </Card>
+</CardGroup>

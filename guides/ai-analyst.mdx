@@ -1,0 +1,519 @@
+---
+title: Using the AI Revenue Analyst
+description: Complete guide to using natural language queries to analyze your business with Claude-powered AI
+---
+
+The AI Revenue Analyst is your conversational business intelligence assistant, powered by Claude. Ask questions in plain English and get instant insights from your Zenoti data across all 5 centers.
+
+## Accessing the AI Analyst
+
+Navigate to **Intelligence** → **AI Analyst** from the main menu.
+
+You'll see the AI chat interface with:
+- Chat history panel (center)
+- Input box at bottom
+- Suggested prompts when starting a new conversation
+- Clear conversation button (refresh icon, top right)
+
+## What the AI Analyst Can Do
+
+The AI has complete access to your business data:
+
+### Data Sources Analyzed
+
+- **Appointments**: All 100+ appointments across 5 locations
+- **Guests**: 50 client records with visit history, CLV, preferences
+- **Invoices**: Revenue by service, provider, location
+- **Daily Metrics**: 90 days of performance data (450 total records)
+- **Conversations**: 50 AI interactions with sentiment analysis
+- **Alerts**: 20 active opportunities and warnings
+- **Agent Performance**: Status of 9 AI agents across modules
+
+### Types of Questions You Can Ask
+
+**Performance Analysis**
+- "Which center is underperforming this month?"
+- "How much revenue did we generate last week?"
+- "What's our average response time?"
+
+**Location Comparisons**
+- "Compare SoHo vs Williamsburg performance"
+- "Which location has the best utilization rate?"
+- "Show me no-show rates by location"
+
+**Client Insights**
+- "Who are our top 10 clients by CLV?"
+- "Which clients are at risk of churning?"
+- "How many new clients did we acquire this month?"
+
+**Service Analysis**
+- "Which service generates the most revenue?"
+- "What's the average booking rate for Body Contouring?"
+- "Compare Botox vs Filler performance"
+
+**Revenue Opportunities**
+- "Where are the biggest revenue gaps right now?"
+- "How much revenue are we losing to no-shows?"
+- "What should I focus on this week?"
+
+**Provider Performance**
+- "Which provider has the best rebooking rate?"
+- "How many appointments did Dr. Chen complete this week?"
+- "What's the utilization rate by provider?"
+
+<Tip>
+The AI understands context, so you can ask follow-up questions. After asking about SoHo performance, you can follow up with "What about Williamsburg?" without re-specifying the question type.
+</Tip>
+
+## Suggested Prompts
+
+When you first open the AI Analyst, you'll see 6 suggested prompts:
+
+1. **"Which center is underperforming this month?"**
+   - Analyzes revenue trends across locations
+   - Identifies locations below targets
+   - Suggests focus areas
+
+2. **"How much revenue are we losing to no-shows?"**
+   - Calculates missed revenue from no-show appointments
+   - Shows improvement since AI implementation
+   - Recommends prevention strategies
+
+3. **"Compare SoHo vs Williamsburg performance"**
+   - Side-by-side metrics comparison
+   - Revenue, utilization, no-shows, new clients
+   - Relative strengths and weaknesses
+
+4. **"What should I focus on this week?"**
+   - Prioritized action items
+   - Based on current alerts and opportunities
+   - Considers revenue impact and urgency
+
+5. **"Where are the biggest revenue gaps right now?"**
+   - Identifies underutilized capacity
+   - Highlights unfilled time slots
+   - Suggests promotional opportunities
+
+6. **"Which provider has the best rebooking rate?"**
+   - Ranks providers by client retention
+   - Shows best practices to replicate
+   - Identifies coaching opportunities
+
+<Note>
+These prompts are visible both at the start of a conversation and as quick-access buttons during your chat session.
+</Note>
+
+## Understanding AI Responses
+
+The AI formats responses using markdown for clarity:
+
+### Response Components
+
+**Summary Section**
+- Quick answer to your question
+- Key findings highlighted
+- Usually 2-3 sentences
+
+**Detailed Analysis**
+- Deeper breakdown with numbers
+- Comparisons to benchmarks or trends
+- Context explaining what the numbers mean
+
+**Data Tables**
+- Formatted tables for multi-item comparisons
+- Sorted by relevance (highest to lowest impact)
+- Columns include metrics and trends
+
+**Recommendations**
+- 3-5 actionable next steps
+- Prioritized by impact
+- Specific, not generic advice
+
+**Visual Formatting**:
+- **Bold text**: Key metrics and findings
+- *Italics*: Context and explanations
+- Bullet lists: Multiple related items
+- Numbered lists: Sequential action steps
+- Tables: Comparative data
+- Code blocks: Specific values or formulas
+
+### Example Response Format
+
+```
+Question: "Which center is underperforming this month?"
+
+AI Response:
+
+**White Plains is currently underperforming** with $48,000 revenue 
+over the last 30 days, 18% below the $58,000 target.
+
+Key metrics:
+- Revenue: $48,000 (-18% vs target)
+- Utilization: 58% (target: 65%+)
+- No-show rate: 16% (higher than 12% target)
+- New clients: 12 (below 18 target)
+
+**Recommended Actions:**
+
+1. Address high no-show rate (costing ~$2,400/month)
+   - Enable automated confirmation calls
+   - Review at-risk client patterns
+
+2. Increase utilization (10+ unfilled slots this week)
+   - Launch lunch-hour promotion
+   - Target rebooking campaigns to overdue clients
+
+3. Boost new client acquisition
+   - Increase local social media presence
+   - Offer first-time client discount
+```
+
+## Location-Specific Queries
+
+The AI automatically filters data based on your currently selected location in the top navigation.
+
+### How Location Filtering Works
+
+**When "All Centers" is selected**:
+- AI analyzes aggregated data across all 5 locations
+- Provides network-wide insights
+- Can break down by individual location within the response
+
+**When a specific location is selected** (e.g., "SoHo Flagship"):
+- AI focuses only on that location's data
+- Comparisons are vs. that location's historical performance
+- Can still reference other locations for context if asked
+
+### Changing Location Mid-Conversation
+
+If you change the location selector while chatting:
+- Future questions use the new location filter
+- Previous chat messages remain unchanged
+- You'll see a note in the interface indicating the data source
+
+<Tip>
+Start with "All Centers" to identify problem areas, then switch to specific locations to drill deeper.
+</Tip>
+
+## Complex Analysis Queries
+
+The AI can handle sophisticated multi-part questions:
+
+### Time-Based Analysis
+
+**Examples**:
+- "Show me revenue trends for the last 3 months"
+- "Compare this week vs. last week performance"
+- "What days of the week perform best?"
+
+**AI Capabilities**:
+- Analyzes 90 days of historical metrics
+- Identifies seasonal patterns
+- Projects future trends based on patterns
+
+### Cohort Analysis
+
+**Examples**:
+- "How do new clients compare to returning clients in CLV?"
+- "What's the rebooking rate for clients who booked via AI vs. phone?"
+- "Compare performance of Injectable services vs. Facial services"
+
+**AI Capabilities**:
+- Segments clients by behavior, service type, booking channel
+- Calculates comparative metrics
+- Identifies statistically significant differences
+
+### Root Cause Analysis
+
+**Examples**:
+- "Why is the no-show rate high at Williamsburg?"
+- "What's causing low utilization on Tuesdays?"
+- "Why did revenue drop last week at Hoboken?"
+
+**AI Capabilities**:
+- Examines multiple potential factors
+- Tests hypotheses against data
+- Provides evidence-based explanations
+
+### Predictive Questions
+
+**Examples**:
+- "What will revenue be if we maintain current growth?"
+- "How much could we earn by reducing no-shows to 10%?"
+- "What happens if we add one more provider at SoHo?"
+
+**AI Capabilities**:
+- Uses historical trends to project forward
+- Models scenarios based on variable changes
+- Calculates potential ROI of improvements
+
+## Best Practices for Getting Great Answers
+
+### Be Specific
+
+❌ **Vague**: "How are we doing?"
+✅ **Specific**: "What's our revenue growth rate this month vs. last month?"
+
+❌ **Vague**: "Tell me about clients"
+✅ **Specific**: "Which clients with CLV over $5K haven't visited in 60+ days?"
+
+### Ask Follow-Up Questions
+
+The AI remembers context within a conversation:
+
+**Initial**: "Which location has the highest revenue?"
+**Follow-up**: "What's their utilization rate?"
+**Follow-up**: "How does that compare to Williamsburg?"
+
+Each question builds on the previous context.
+
+### Request Specific Formats
+
+You can ask for data in specific formats:
+
+- "Show me a table of revenue by location"
+- "List the top 5 services by booking count"
+- "Give me a bullet list of action items"
+- "Rank providers by performance"
+
+### Combine Multiple Metrics
+
+**Examples of Combined Queries**:
+- "Show me locations ranked by revenue, utilization, and no-show rate"
+- "Which clients have high CLV but low visit frequency?"
+- "What services have high demand but low provider availability?"
+
+<Note>
+The AI can analyze up to 5-7 different metrics in a single query. More than that and the response becomes too complex.
+</Note>
+
+## Understanding AI Context
+
+The AI Analyst has access to computed context that includes:
+
+### Real-Time Metrics
+- Current day bookings
+- Today's revenue so far
+- Active conversations
+- Pending escalations
+
+### Historical Trends
+- Last 30 days aggregated metrics
+- Previous 30 days for comparison
+- 90-day trend data
+- Phase-based performance (Pre-AI, Ramp-up, Full Operation)
+
+### Client Intelligence
+- Individual client history
+- CLV calculations
+- Visit patterns and preferences
+- No-show risk scores
+
+### Opportunity Detection
+- Active alerts (20 opportunities/warnings)
+- Revenue gap identification
+- Underutilized capacity
+- At-risk high-value clients
+
+## Chat Management
+
+### Clearing Conversations
+
+Click the refresh icon (top right) to:
+- Clear current chat history
+- Start fresh with new context
+- Reset conversation memory
+
+**When to Clear**:
+- Switching to a completely different topic
+- AI seems confused by previous context
+- You want to verify a previous answer independently
+
+### Conversation History
+
+The chat remembers:
+- All questions you asked in current session
+- All AI responses
+- Follow-up context
+
+**Chat history does NOT persist**:
+- When you navigate away from AI Analyst page
+- When you refresh your browser
+- Between different user sessions
+
+<Tip>
+If you need to reference an AI insight later, copy important findings into your notes. Chat history is session-only.
+</Tip>
+
+## Streaming Responses
+
+AI responses appear gradually (streaming) rather than all at once:
+
+### Why Streaming?
+- Immediate feedback that AI is working
+- Can start reading while response generates
+- More natural conversation feel
+- Shows complex analysis in progress
+
+### While AI is Thinking
+
+You'll see:
+- Animated dots in a message bubble
+- Brain icon with pulse animation
+- Input box is disabled (can't send new messages)
+
+**Response Speed**: 
+- Simple queries: 2-3 seconds for complete response
+- Complex analysis: 5-8 seconds
+- Multi-part questions: 8-12 seconds
+
+## Data Accuracy & Sources
+
+All AI responses are based on:
+
+**Primary Source**: Zenoti API
+- Live appointment data
+- Real client records
+- Actual invoice amounts
+- Provider schedules
+
+**Enhanced by Platform**:
+- AI conversation analytics
+- Sentiment analysis
+- Predictive scoring
+- Opportunity detection
+
+**Data Freshness**:
+- Metrics update in real-time as appointments complete
+- Daily metrics compiled at midnight
+- Trends calculated on-demand when queried
+
+<Note>
+The AI always cites its data source in responses: "Based on Zenoti data from the last 30 days..." This transparency ensures you can verify findings.
+</Note>
+
+## Example Conversations
+
+### Performance Review
+
+**You**: "How did we perform last month?"
+
+**AI**: Provides overall revenue, bookings, key trends vs. previous month
+
+**You**: "Which location grew the most?"
+
+**AI**: Identifies top performer with percentage growth and dollar amounts
+
+**You**: "What drove that growth?"
+
+**AI**: Analyzes factors like new clients, service mix, utilization changes
+
+### Problem Diagnosis
+
+**You**: "Why is utilization low at Stamford?"
+
+**AI**: Shows utilization rate, compares to other locations, identifies gap
+
+**You**: "What time slots are empty?"
+
+**AI**: Breaks down by day of week and time of day
+
+**You**: "How can I fill those slots?"
+
+**AI**: Recommends targeted promotions, rebooking campaigns, schedule adjustments
+
+### Strategic Planning
+
+**You**: "What should I focus on this quarter?"
+
+**AI**: Prioritized list of opportunities with revenue impact
+
+**You**: "Tell me more about the no-show opportunity"
+
+**AI**: Detailed breakdown of no-show costs, prevention strategies, expected ROI
+
+**You**: "What if we reduced no-shows by 5 percentage points?"
+
+**AI**: Calculates revenue impact across all locations
+
+## Limitations & Boundaries
+
+The AI Analyst is powerful but has boundaries:
+
+### What AI CANNOT Do
+
+❌ Make actual changes to appointments or settings
+❌ Send messages or emails to clients
+❌ Access individual conversation details (privacy protected)
+❌ Predict specific client behavior with certainty
+❌ Provide medical or clinical advice
+❌ Access data outside Etienne/Zenoti systems
+
+### What AI CAN Do
+
+✅ Analyze all historical and current business data
+✅ Identify patterns and trends
+✅ Recommend specific actions based on data
+✅ Compare performance across locations/services/time
+✅ Project outcomes based on historical trends
+✅ Answer "what if" scenario questions
+
+## Privacy & Security
+
+- AI Analyst uses Claude (Anthropic) with enterprise security
+- All data transmitted is encrypted
+- No client PII is stored in AI conversation logs
+- Conversations are not used to train AI models
+- Access is role-based (owner and authorized staff only)
+
+<Note>
+While the AI can see client names and service history for analysis, it doesn't display sensitive information like payment details or medical records in responses.
+</Note>
+
+## Tips for Power Users
+
+### Build a Weekly Review Routine
+
+**Monday Morning**:
+1. "What happened last week across all centers?"
+2. "Which alerts should I prioritize this week?"
+3. "Are there any high-CLV clients I should contact?"
+
+**Mid-Week Check**:
+1. "How are we tracking vs. last week?"
+2. "Any concerning trends in the last 3 days?"
+
+**Friday Wrap-Up**:
+1. "Summarize this week's performance"
+2. "What should I focus on next week?"
+
+### Compare Before/After Campaign Results
+
+**Before launching a promotion**:
+"What's our current booking rate for Hydrafacials on Tuesdays?"
+
+**After the campaign**:
+"Compare this week's Tuesday Hydrafacial bookings to last month's average"
+
+### Track Improvement Over Time
+
+**Set a baseline**:
+"What's our current no-show rate at White Plains?"
+
+**Check progress monthly**:
+"Compare White Plains no-show rate this month vs. 3 months ago"
+
+### Use AI for Team Meetings
+
+**Prep meeting agenda**:
+"What are the top 3 issues to discuss in tomorrow's team meeting?"
+
+**Support decisions with data**:
+"Pull the data supporting our decision to add a Saturday provider"
+
+## Next Steps
+
+- Review [Understanding Analytics](/guides/analytics) to learn what metrics mean
+- Check the [Owner View Guide](/guides/owner-view) to see how insights appear on your dashboard
+- Practice with suggested prompts to get comfortable with the AI
+- Build your weekly AI Analyst routine
