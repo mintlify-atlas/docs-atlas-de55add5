@@ -1,0 +1,97 @@
+{
+  "projectType": "saas",
+  "projectName": "Etienne Intelligence Platform",
+  "projectDescription": "AI-powered business intelligence platform for wellness and spa businesses with revenue tracking, customer communication automation, and scheduling optimization.",
+  "theme": "linden",
+  "primaryColor": "#2563eb",
+  "lightColor": "#60a5fa",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/dashboard",
+              "features/command-center",
+              "features/scheduling",
+              "features/intelligence",
+              "features/ai-agents"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/zenoti-setup",
+              "integrations/authentication"
+            ]
+          },
+          {
+            "group": "User Guides",
+            "pages": [
+              "guides/owner-view",
+              "guides/staff-view",
+              "guides/analytics",
+              "guides/ai-analyst"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Zenoti Integration",
+            "pages": [
+              "api/overview",
+              "api/client",
+              "api/authentication",
+              "api/endpoints",
+              "api/data-mappers",
+              "api/hooks",
+              "api/error-handling"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered revenue intelligence dashboard",
+    "Multi-channel customer communication (voice, SMS, web, social)",
+    "Automated scheduling and utilization optimization",
+    "Natural language AI analyst for business insights",
+    "Real-time Zenoti integration for booking and revenue data",
+    "Multi-location business management",
+    "Role-based dashboards for owners and staff"
+  ],
+  "publicApiSurface": [
+    "zenotiRequest",
+    "getAccessToken",
+    "listCenters",
+    "listServices",
+    "searchGuests",
+    "listAppointments",
+    "getSalesReport",
+    "useLocations",
+    "useServices",
+    "useAppointments",
+    "useClients",
+    "useDailyMetrics",
+    "mapCenter",
+    "mapAppointment",
+    "mapGuest",
+    "mapSalesReport"
+  ]
+}
